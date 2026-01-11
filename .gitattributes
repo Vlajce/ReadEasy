@@ -1,0 +1,4 @@
+# Force consistent line endings
+* text=auto
+*.json text eol=lf
+*.ts text eol=lf
