@@ -10,4 +10,8 @@ app.get("/", (req, res) => {
   res.status(200).json({ status: "API is healthy 🚀" });
 });
 
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "Mica kraljica" });
+});
+
 export default app;
