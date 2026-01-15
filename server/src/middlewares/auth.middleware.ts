@@ -14,7 +14,7 @@ const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
   try {
     const payload = verifyAccessToken(token);
     req.user = { userId: payload.userId };
-    return next();
+    next();
   } catch (error) {
     console.error("Auth middleware error:", error);
     return res.status(401).json({ message: "Invalid or expired token" });

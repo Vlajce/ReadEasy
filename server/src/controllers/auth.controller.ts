@@ -9,10 +9,6 @@ import {
 } from "../utils/jwt.js";
 import config from "../config/config.js";
 
-// refresh token
-
-// logout
-
 const register = async (req: Request, res: Response) => {
   try {
     const parsed = registerSchema.safeParse(req.body);

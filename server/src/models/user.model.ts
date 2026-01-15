@@ -31,9 +31,7 @@ const userSchema = new Schema<IUser>(
       select: false,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 export const User = mongoose.model<IUser>("User", userSchema);

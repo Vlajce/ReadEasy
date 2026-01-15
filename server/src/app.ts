@@ -18,9 +18,8 @@ app.use(
 
 // Routes
 app.use("/auth", authRoutes);
-app.use("/user", userRoutes);
+app.use("/users", userRoutes);
 
-// Health endpoint
 app.get("/", (req, res) => {
   res.status(200).json({ status: "API is healthy 🚀" });
 });
