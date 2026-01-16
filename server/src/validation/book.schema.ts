@@ -43,4 +43,13 @@ export const bookSchema = z
     }
   });
 
+export const gutendexBookSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  authors: z.array(z.object({ name: z.string() })).optional(),
+  languages: z.array(z.string()),
+  formats: z.record(z.string(), z.string()),
+});
+
+export type GutendexBook = z.infer<typeof gutendexBookSchema>;
 export type BookInput = z.infer<typeof bookSchema>;

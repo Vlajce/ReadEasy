@@ -21,3 +21,6 @@ Thumbs.db
 # Editor
 .vscode
 .idea
+
+# Ignore storage of downloaded books
+server/storage
