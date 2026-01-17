@@ -93,6 +93,7 @@ const importBook = async (id: string, log: ImportLog) => {
     }
 
     const txtRes = await fetch(txtUrl);
+    if (!txtRes.ok) throw new Error("Failed to download TXT file");
     const rawText = await txtRes.text();
     const cleanText = cleanGutenbergText(rawText);
     const wordCount = countWords(cleanText);
@@ -110,10 +111,15 @@ const importBook = async (id: string, log: ImportLog) => {
     const relativePath = `public-books/${fileName}`;
 
     // === PRIPREMI BOOKINPUT ===
+    const description = data.summaries?.[0]
+      ? data.summaries[0].slice(0, 2000) // zaštita od overflowa
+      : undefined;
+
     const bookInput: BookInput = bookSchema.parse({
       title: data.title,
       author: data.authors?.[0]?.name || "Unknown",
       language: data.languages?.[0] || "en",
+      description,
       filepath: relativePath,
       wordCount,
       isPublicDomain: true,

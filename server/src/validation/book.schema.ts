@@ -49,6 +49,7 @@ export const gutendexBookSchema = z.object({
   authors: z.array(z.object({ name: z.string() })).optional(),
   languages: z.array(z.string()),
   formats: z.record(z.string(), z.string()),
+  summaries: z.array(z.string()).optional(),
 });
 
 export type GutendexBook = z.infer<typeof gutendexBookSchema>;
