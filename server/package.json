@@ -4,7 +4,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "tsx watch src/server.ts"
+    "dev": "tsx watch src/server.ts",
+    "import-books": "tsx src/scripts/import-books.ts"
   },
   "keywords": [],
   "author": "",

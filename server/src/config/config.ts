@@ -21,6 +21,7 @@ const config = {
   env: process.env.NODE_ENV || "development",
   port: parseInt(process.env.PORT || "5000", 10),
   mongoUri: process.env.MONGO_URI!,
+  importConcurrency: parseInt(process.env.IMPORT_CONCURRENCY || "5", 10),
   jwt: {
     access: {
       secret: process.env.JWT_ACCESS_SECRET as string,

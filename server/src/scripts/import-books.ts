@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { connectDB } from "../config/db.js";
+import config from "../config/config.js";
 import { bookRepository } from "../repositories/book.repository.js";
 import {
   gutendexBookSchema,
@@ -11,6 +12,7 @@ import {
 
 // === CONFIG ===
 const GUTENDEX_BASE = "https://gutendex.com/books";
+const BATCH_SIZE = Number(config.importConcurrency) || 5;
 const ROOT = path.resolve(process.cwd());
 const IDS_FILE = path.join(ROOT, "data/gutenberg-ids.txt");
 const STORAGE_DIR = path.join(ROOT, "storage/public-books");
@@ -76,24 +78,31 @@ const saveLog = async (log: ImportLog) => {
 
 // ============================
 
-const importBook = async (id: string, log: ImportLog) => {
+interface ImportResult {
+  id: string;
+  success: boolean;
+  reason?: string;
+}
+
+const importBook = async (id: string): Promise<ImportResult> => {
   console.log(`Importing book ${id}`);
 
   try {
     const res = await fetch(`${GUTENDEX_BASE}/${id}/`);
-    if (!res.ok) throw new Error(`Failed to fetch book ID ${id}`);
+    if (!res.ok)
+      throw new Error(`Failed to fetch book ID ${id} (status ${res.status})`);
 
     const rawData = await res.json();
     const data: GutendexBook = gutendexBookSchema.parse(rawData); // TS + runtime safe
 
     const txtUrl = getTxtUrl(data.formats);
     if (!txtUrl) {
-      log.failed.push({ id, reason: "No TXT format" });
-      return;
+      return { id, success: false, reason: "No TXT format" };
     }
 
     const txtRes = await fetch(txtUrl);
-    if (!txtRes.ok) throw new Error("Failed to download TXT file");
+    if (!txtRes.ok)
+      throw new Error(`Failed to download TXT file (status ${txtRes.status})`);
     const rawText = await txtRes.text();
     const cleanText = cleanGutenbergText(rawText);
     const wordCount = countWords(cleanText);
@@ -112,7 +121,7 @@ const importBook = async (id: string, log: ImportLog) => {
 
     // === PRIPREMI BOOKINPUT ===
     const description = data.summaries?.[0]
-      ? data.summaries[0].slice(0, 2000) // zaštita od overflowa
+      ? data.summaries[0].slice(0, 2000)
       : undefined;
 
     const bookInput: BookInput = bookSchema.parse({
@@ -127,17 +136,15 @@ const importBook = async (id: string, log: ImportLog) => {
 
     await bookRepository.createBook(bookInput);
 
-    log.success.push(id);
     console.log(`Imported: ${data.title}`);
+    return { id, success: true };
   } catch (err: unknown) {
     let reason = "Unknown error";
     if (err instanceof Error) reason = err.message;
     else if (typeof err === "string") reason = err;
 
     console.error(`Error importing ${id}: ${reason}`);
-    log.failed.push({ id, reason });
-  } finally {
-    await saveLog(log);
+    return { id, success: false, reason };
   }
 };
 
@@ -149,13 +156,39 @@ const main = async () => {
 
   const ids = await readIds();
   const log = await loadLog();
+  const successSet = new Set(log.success);
+  const failedMap = new Map(
+    log.failed.map((f) => [f.id, f.reason] as [string, string]),
+  );
 
-  for (const id of ids) {
-    if (log.success.includes(id)) {
-      console.log(`Skipping ${id}, already imported`);
-      continue; // resume-friendly
+  // Filtriramo one koje smo već uvezli
+  const remainingIds = ids.filter((id) => !successSet.has(id));
+
+  console.log(`Total books to import: ${remainingIds.length}`);
+
+  for (let i = 0; i < remainingIds.length; i += BATCH_SIZE) {
+    const batch = remainingIds.slice(i, i + BATCH_SIZE);
+    console.log(
+      `Processing batch ${Math.floor(i / BATCH_SIZE) + 1} (${batch.length} books)`,
+    );
+
+    const results = await Promise.all(batch.map((id) => importBook(id)));
+
+    for (const r of results) {
+      if (r.success) successSet.add(r.id);
+      else failedMap.set(r.id, r.reason || "Unknown");
     }
-    await importBook(id, log);
+
+    // Persist deduped arrays back to log and save
+    log.success = Array.from(successSet);
+    log.failed = Array.from(failedMap.entries()).map(([id, reason]) => ({
+      id,
+      reason,
+    }));
+
+    await saveLog(log);
+
+    console.log(`Batch ${Math.floor(i / BATCH_SIZE) + 1} done`);
   }
 
   console.log("Import finished");

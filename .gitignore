@@ -23,4 +23,7 @@ Thumbs.db
 .idea
 
 # Ignore storage of downloaded books
-server/storage
+**/storage
+
+# Ignore temporary files
+**/import-log.json
