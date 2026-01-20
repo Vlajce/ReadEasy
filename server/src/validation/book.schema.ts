@@ -19,26 +19,29 @@ export const bookSchema = z
       .trim()
       .regex(
         /^(?!.*\.\.)(?![/\\])(?:[\w-]+(?:[/\\][\w-]+)*)\.txt$/i,
-        "Relativna putanja koja se završava na .txt, bez '..'"
+        "Relativna putanja koja se završava na .txt, bez '..'",
       ),
     coverImagePath: z
       .string()
       .trim()
       .regex(
         /^(?!.*\.\.)(?![/\\])(?:[\w-]+(?:[/\\][\w-]+)*)\.(png|jpg|jpeg)$/i,
-        "Relativna putanja do slike (.png/.jpg/.jpeg), bez '..'"
+        "Relativna putanja do slike (.png/.jpg/.jpeg), bez '..'",
       )
       .optional(),
     wordCount: z.number().int().min(0).optional(),
-    isPublicDomain: z.boolean().default(true),
+
+    visibility: z.enum(["public", "private"]).default("public"),
     ownerId: z.string().regex(objectIdRegex, "Nevalidan ownerId").optional(),
+
+    subjects: z.array(z.string()).optional(),
   })
   .superRefine((data, ctx) => {
-    if (!data.isPublicDomain && !data.ownerId) {
+    if (data.visibility === "private" && !data.ownerId) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["ownerId"],
-        message: "ownerId je obavezan kada je isPublicDomain = false",
+        message: "ownerId je obavezan kada je visibility = 'private'",
       });
     }
   });
@@ -50,6 +53,7 @@ export const gutendexBookSchema = z.object({
   languages: z.array(z.string()),
   formats: z.record(z.string(), z.string()),
   summaries: z.array(z.string()).optional(),
+  subjects: z.array(z.string()).optional(),
 });
 
 export type GutendexBook = z.infer<typeof gutendexBookSchema>;

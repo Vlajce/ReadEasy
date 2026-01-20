@@ -25,6 +25,17 @@ interface ImportLog {
   failed: { id: string; reason: string }[];
 }
 
+interface ImportResult {
+  id: string;
+  success: boolean;
+  book?: BookInput;
+  reason?: string;
+}
+
+// ============================
+// UTILS
+// ============================
+
 const readIds = async (): Promise<string[]> => {
   const raw = await fs.readFile(IDS_FILE, "utf-8");
   return raw
@@ -36,8 +47,6 @@ const readIds = async (): Promise<string[]> => {
 const ensureDir = async () => {
   await fs.mkdir(STORAGE_DIR, { recursive: true });
 };
-
-// === UTILS ===
 
 const cleanGutenbergText = (text: string) => {
   const startMatch = text.match(/\*\*\* START OF.*\*\*\*/);
@@ -77,12 +86,8 @@ const saveLog = async (log: ImportLog) => {
 };
 
 // ============================
-
-interface ImportResult {
-  id: string;
-  success: boolean;
-  reason?: string;
-}
+// IMPORT LOGIC
+// ============================
 
 const importBook = async (id: string): Promise<ImportResult> => {
   console.log(`Importing book ${id}`);
@@ -90,10 +95,10 @@ const importBook = async (id: string): Promise<ImportResult> => {
   try {
     const res = await fetch(`${GUTENDEX_BASE}/${id}/`);
     if (!res.ok)
-      throw new Error(`Failed to fetch book ID ${id} (status ${res.status})`);
+      throw new Error(`Failed to fetch metadata (status ${res.status})`);
 
     const rawData = await res.json();
-    const data: GutendexBook = gutendexBookSchema.parse(rawData); // TS + runtime safe
+    const data: GutendexBook = gutendexBookSchema.parse(rawData);
 
     const txtUrl = getTxtUrl(data.formats);
     if (!txtUrl) {
@@ -102,7 +107,8 @@ const importBook = async (id: string): Promise<ImportResult> => {
 
     const txtRes = await fetch(txtUrl);
     if (!txtRes.ok)
-      throw new Error(`Failed to download TXT file (status ${txtRes.status})`);
+      throw new Error(`Failed to download TXT (status ${txtRes.status})`);
+
     const rawText = await txtRes.text();
     const cleanText = cleanGutenbergText(rawText);
     const wordCount = countWords(cleanText);
@@ -119,7 +125,6 @@ const importBook = async (id: string): Promise<ImportResult> => {
 
     const relativePath = `public-books/${fileName}`;
 
-    // === PRIPREMI BOOKINPUT ===
     const description = data.summaries?.[0]
       ? data.summaries[0].slice(0, 2000)
       : undefined;
@@ -131,23 +136,29 @@ const importBook = async (id: string): Promise<ImportResult> => {
       description,
       filepath: relativePath,
       wordCount,
-      isPublicDomain: true,
+      visibility: "public",
+      subjects: data.subjects || [],
     });
 
-    await bookRepository.createBook(bookInput);
-
-    console.log(`Imported: ${data.title}`);
-    return { id, success: true };
+    return {
+      id,
+      success: true,
+      book: bookInput,
+    };
   } catch (err: unknown) {
     let reason = "Unknown error";
+
     if (err instanceof Error) reason = err.message;
     else if (typeof err === "string") reason = err;
 
     console.error(`Error importing ${id}: ${reason}`);
+
     return { id, success: false, reason };
   }
 };
 
+// ============================
+// MAIN
 // ============================
 
 const main = async () => {
@@ -172,14 +183,26 @@ const main = async () => {
       `Processing batch ${Math.floor(i / BATCH_SIZE) + 1} (${batch.length} books)`,
     );
 
-    const results = await Promise.all(batch.map((id) => importBook(id)));
+    const results = await Promise.all(batch.map(importBook));
 
+    const successfulBooks = results
+      .filter((r) => r.success && r.book)
+      .map((r) => r.book!);
+
+    if (successfulBooks.length > 0) {
+      try {
+        await bookRepository.insertManyBooks(successfulBooks);
+      } catch (err) {
+        console.error("Bulk insert error:", err);
+      }
+    }
+
+    // Update logs
     for (const r of results) {
       if (r.success) successSet.add(r.id);
       else failedMap.set(r.id, r.reason || "Unknown");
     }
 
-    // Persist deduped arrays back to log and save
     log.success = Array.from(successSet);
     log.failed = Array.from(failedMap.entries()).map(([id, reason]) => ({
       id,
@@ -188,7 +211,7 @@ const main = async () => {
 
     await saveLog(log);
 
-    console.log(`Batch ${Math.floor(i / BATCH_SIZE) + 1} done`);
+    console.log(`Batch ${Math.floor(i / BATCH_SIZE) + 1} finished`);
   }
 
   console.log("Import finished");
