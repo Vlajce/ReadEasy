@@ -1,15 +1,18 @@
 import { Router } from "express";
 import { bookController } from "../controllers/book.controller.js";
 import isAuthenticated from "../middlewares/auth.middleware.js";
+import validateObjectId from "../middlewares/validateObjectId.middleware.js";
 
-const { getAllBooks, getBookById } = bookController;
+const { getPublicBooks, getPublicBookById, getPublicBookContent } =
+  bookController;
 
 const router = Router();
 
 // Protect all routes in this router
 router.use(isAuthenticated);
 
-router.get("/", getAllBooks);
-router.get("/:id", getBookById);
+router.get("/", getPublicBooks);
+router.get("/:id", validateObjectId("id"), getPublicBookById);
+router.get("/:id/content", validateObjectId("id"), getPublicBookContent);
 
 export const bookRoutes = router;

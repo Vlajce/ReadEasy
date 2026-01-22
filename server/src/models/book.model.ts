@@ -58,7 +58,6 @@ const bookSchema = new Schema<IBook>(
 bookSchema.index({
   title: "text",
   author: "text",
-  description: "text",
 });
 
 // Compound index for private library queries
