@@ -1,7 +1,8 @@
+import fs from "fs";
+import fsPromises from "fs/promises";
+import path from "path";
 import { Book, type IBook } from "../models/book.model.js";
 import type { BookInput, FindBooksQuery } from "../validation/book.schema.js";
-import fs from "fs/promises";
-import path from "path";
 
 interface PaginatedResult<T> {
   data: T[];
@@ -13,12 +14,7 @@ interface PaginatedResult<T> {
   };
 }
 
-const createBook = async (data: BookInput): Promise<IBook> => {
-  const existing = await Book.findOne({ filepath: data.filepath }).exec();
-  if (existing) return existing;
-
-  return await Book.create(data);
-};
+const STORAGE_ROOT = path.resolve(process.cwd(), "storage");
 
 const insertManyBooks = async (books: BookInput[]): Promise<IBook[]> => {
   return await Book.insertMany(books, { ordered: false });
@@ -78,20 +74,40 @@ const findPublicBookById = async (id: string): Promise<IBook | null> => {
     .exec();
 };
 
-const findPublicBookContent = async (id: string): Promise<string | null> => {
-  const book = await Book.findById(id)
-    .select("filepath visibility")
-    .lean()
-    .exec();
-  if (!book || book.visibility !== "public") return null;
+/**
+ * Returns a readable stream for the public book content.
+ * Throws { status: number, message: string } on error.
+ */
+const findPublicBookContentById = async (
+  id: string,
+): Promise<{ stream: NodeJS.ReadableStream; size: number }> => {
+  const book = await Book.findOne({ _id: id, visibility: "public" }).exec();
+  if (!book) {
+    throw { status: 404, message: "Book not found" };
+  }
+
+  if (!book.filepath) {
+    throw { status: 404, message: "Book content not found" };
+  }
+
+  const absolute = path.resolve(STORAGE_ROOT, book.filepath);
+  const relative = path.relative(STORAGE_ROOT, absolute);
+
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw { status: 400, message: "Invalid book filepath" };
+  }
 
   try {
-    const filepath = path.resolve("storage/", book.filepath);
-    const content = await fs.readFile(filepath, "utf-8");
-    return content;
-  } catch (error) {
-    console.error("Error reading book content:", error);
-    return null;
+    const stats = await fsPromises.stat(absolute);
+    if (!stats.isFile()) {
+      throw { status: 404, message: "Book content not found" };
+    }
+    await fsPromises.access(absolute, fs.constants.R_OK);
+    const stream = fs.createReadStream(absolute, { encoding: "utf8" });
+    return { stream, size: stats.size };
+  } catch (err) {
+    console.error("Find public book content error:", err);
+    throw { status: 404, message: "Book content not found" };
   }
 };
 
@@ -99,11 +115,40 @@ const findPrivateBooks = async (userId: string): Promise<IBook[]> => {
   return Book.find({ visibility: "private", ownerId: userId }).exec();
 };
 
+const createPrivateBook = async (
+  data: Pick<
+    BookInput,
+    "title" | "author" | "language" | "filepath" | "wordCount"
+  > & { ownerId: string },
+): Promise<IBook> => {
+  return Book.create({
+    ...data,
+    visibility: "private",
+  });
+};
+
+const countWordsInFile = async (filePath: string): Promise<number> => {
+  const content = await fsPromises.readFile(filePath, "utf-8");
+  const trimmed = content.replace(/\s+/g, " ").trim();
+  if (!trimmed) return 0;
+  return trimmed.split(" ").length;
+};
+
+const deleteFile = async (filePath: string): Promise<void> => {
+  try {
+    await fsPromises.unlink(filePath);
+  } catch (err) {
+    console.error("Failed to delete file:", filePath, err);
+  }
+};
+
 export const bookRepository = {
-  createBook,
   insertManyBooks,
   findPublicBookById,
-  findPublicBookContent,
   findPublicBooks,
+  findPublicBookContentById,
   findPrivateBooks,
+  createPrivateBook,
+  countWordsInFile,
+  deleteFile,
 };
