@@ -53,7 +53,7 @@ const fileFilter = (
   cb(null, true);
 };
 
-export const upload = multer({
+export const uploadPrivateBook = multer({
   storage,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10 MB

@@ -67,7 +67,7 @@ const getPublicBookContent = async (req: Request, res: Response) => {
   }
 };
 
-const uploadPrivateBook = async (req: Request, res: Response) => {
+const uploadMyBook = async (req: Request, res: Response) => {
   const file = req.file;
 
   if (!file) {
@@ -117,6 +117,66 @@ const uploadPrivateBook = async (req: Request, res: Response) => {
   }
 };
 
+const getMyBooks = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const books = await bookRepository.findPrivateBooks(userId);
+
+    return res.status(200).json(books);
+  } catch (error) {
+    console.error("Get my books error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const getMyBookById = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const { id } = req.params;
+
+    const book = await bookRepository.findPrivateBookById(id as string, userId);
+    if (!book) {
+      return res.status(404).json({ message: "Book not found" });
+    }
+    return res.status(200).json(book);
+  } catch (error) {
+    console.error("Get my book by id error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const getMyBookContent = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const { id } = req.params;
+
+    const { stream, size } = await bookRepository.findPrivateBookContentById(
+      id as string,
+      userId,
+    );
+
+    res.type("text/plain; charset=utf-8");
+    res.setHeader("Content-Length", String(size));
+
+    stream.pipe(res);
+
+    stream.on("error", (err) => {
+      console.error("Stream error:", err);
+      if (!res.headersSent) {
+        res.status(500).json({ message: "Could not read book content" });
+      } else {
+        res.end();
+      }
+    });
+  } catch (err: unknown) {
+    if (isRepoError(err)) {
+      return res.status(err.status).json({ message: err.message });
+    }
+    console.error("Get my book content error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 const isRepoError = (e: unknown): e is { status: number; message?: string } => {
   if (typeof e !== "object" || e === null) return false;
   const r = e as Record<string, unknown>;
@@ -127,5 +187,8 @@ export const bookController = {
   getPublicBooks,
   getPublicBookById,
   getPublicBookContent,
-  uploadPrivateBook,
+  uploadMyBook,
+  getMyBooks,
+  getMyBookById,
+  getMyBookContent,
 };

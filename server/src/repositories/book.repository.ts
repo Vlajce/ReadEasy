@@ -74,10 +74,6 @@ const findPublicBookById = async (id: string): Promise<IBook | null> => {
     .exec();
 };
 
-/**
- * Returns a readable stream for the public book content.
- * Throws { status: number, message: string } on error.
- */
 const findPublicBookContentById = async (
   id: string,
 ): Promise<{ stream: NodeJS.ReadableStream; size: number }> => {
@@ -112,7 +108,60 @@ const findPublicBookContentById = async (
 };
 
 const findPrivateBooks = async (userId: string): Promise<IBook[]> => {
-  return Book.find({ visibility: "private", ownerId: userId }).exec();
+  return Book.find({ visibility: "private", ownerId: userId })
+    .select("-filepath -__v")
+    .sort({ createdAt: -1 })
+    .lean()
+    .exec();
+};
+
+const findPrivateBookById = async (
+  id: string,
+  userId: string,
+): Promise<IBook | null> => {
+  return Book.findOne({ _id: id, visibility: "private", ownerId: userId })
+    .select("-filepath -__v")
+    .lean()
+    .exec();
+};
+
+const findPrivateBookContentById = async (
+  id: string,
+  userId: string,
+): Promise<{ stream: NodeJS.ReadableStream; size: number }> => {
+  const book = await Book.findOne({
+    _id: id,
+    visibility: "private",
+    ownerId: userId,
+  }).exec();
+
+  if (!book) {
+    throw { status: 404, message: "Book not found" };
+  }
+
+  if (!book.filepath) {
+    throw { status: 404, message: "Book content not found" };
+  }
+
+  const absolute = path.resolve(STORAGE_ROOT, book.filepath);
+  const relative = path.relative(STORAGE_ROOT, absolute);
+
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw { status: 400, message: "Invalid book filepath" };
+  }
+
+  try {
+    const stats = await fsPromises.stat(absolute);
+    if (!stats.isFile()) {
+      throw { status: 404, message: "Book content not found" };
+    }
+    await fsPromises.access(absolute, fs.constants.R_OK);
+    const stream = fs.createReadStream(absolute, { encoding: "utf8" });
+    return { stream, size: stats.size };
+  } catch (err) {
+    console.error("Find private book content error:", err);
+    throw { status: 404, message: "Book content not found" };
+  }
 };
 
 const createPrivateBook = async (
@@ -148,6 +197,8 @@ export const bookRepository = {
   findPublicBooks,
   findPublicBookContentById,
   findPrivateBooks,
+  findPrivateBookById,
+  findPrivateBookContentById,
   createPrivateBook,
   countWordsInFile,
   deleteFile,
