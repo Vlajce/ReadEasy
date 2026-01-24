@@ -1,6 +1,7 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
-export interface IBook extends Document {
+export interface IBook {
+  _id: mongoose.Types.ObjectId;
   title: string;
   author: string;
   language: string;
