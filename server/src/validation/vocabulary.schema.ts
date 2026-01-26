@@ -17,7 +17,12 @@ export const createVocabularySchema = z.object({
     .min(1)
     .max(100)
     .transform((val) => val.trim().toLowerCase()),
-  meaning: z.string().min(1).max(500).optional(),
+  meaning: z
+    .string()
+    .min(1)
+    .max(500)
+    .transform((v) => v.trim().toLowerCase())
+    .optional(),
   bookId: z.string().regex(objectIdRegex).optional(),
   context: z.string().min(1).max(500).optional(),
   position: positionSchema.optional(),
@@ -27,17 +32,27 @@ export const createVocabularySchema = z.object({
     .transform((s) => s.toLowerCase())
     .refine((s) => !s || /^[a-z]{2}$/.test(s), {
       message: "Language must be ISO 639-1 code (e.g., 'en', 'fr')",
-    })
-    .optional(),
+    }),
   status: z.enum(["new", "learning", "mastered"]).optional().default("new"),
-  occurrenceCount: z.coerce.number().int().min(0).optional().default(1),
 });
 
 export const updateVocabularySchema = z.object({
-  meaning: z.string().min(1).max(500).optional(),
+  meaning: z
+    .string()
+    .min(1)
+    .max(500)
+    .transform((v) => v.trim().toLowerCase())
+    .optional(),
   context: z.string().min(1).max(500).optional(),
   status: z.enum(["new", "learning", "mastered"]).optional(),
-  occurrenceCount: z.coerce.number().int().min(0).optional(),
+  language: z
+    .string()
+    .trim()
+    .transform((s) => s.toLowerCase())
+    .refine((s) => !s || /^[a-z]{2}$/.test(s), {
+      message: "Language must be ISO 639-1 code (e.g., 'en', 'fr')",
+    })
+    .optional(),
 });
 
 export const findVocabularyQuerySchema = z.object({

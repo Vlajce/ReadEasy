@@ -4,21 +4,23 @@ import isAuthenticated from "../middlewares/auth.middleware.js";
 import validateObjectId from "../middlewares/validateObjectId.middleware.js";
 
 const {
-  getVocabulary,
-  getVocabularyById,
-  createVocabulary,
-  updateVocabulary,
-  deleteVocabulary,
+  getVocabularyEntries,
+  getVocabularyEntryById,
+  createVocabularyEntry,
+  updateVocabularyEntry,
+  deleteVocabularyEntry,
+  vocabularyStats,
 } = vocabularyController;
 
 const router = Router();
 
 router.use(isAuthenticated);
 
-router.get("/", getVocabulary);
-router.post("/", createVocabulary);
-router.get("/:id", validateObjectId("id"), getVocabularyById);
-router.put("/:id", validateObjectId("id"), updateVocabulary);
-router.delete("/:id", validateObjectId("id"), deleteVocabulary);
+router.get("/", getVocabularyEntries);
+router.post("/", createVocabularyEntry);
+router.get("/stats", vocabularyStats);
+router.get("/:id", validateObjectId("id"), getVocabularyEntryById);
+router.put("/:id", validateObjectId("id"), updateVocabularyEntry);
+router.delete("/:id", validateObjectId("id"), deleteVocabularyEntry);
 
 export const vocabularyRoutes = router;

@@ -5,8 +5,9 @@ import {
   updateVocabularySchema,
   findVocabularyQuerySchema,
 } from "../validation/vocabulary.schema.js";
+import type { VocabularyStats } from "../types/vocabulary.types.js";
 
-const getVocabulary = async (req: Request, res: Response) => {
+const getVocabularyEntries = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const queryParsed = findVocabularyQuerySchema.safeParse(req.query);
@@ -18,7 +19,7 @@ const getVocabulary = async (req: Request, res: Response) => {
       });
     }
 
-    const result = await vocabularyRepository.findVocabulary(
+    const result = await vocabularyRepository.findEntries(
       userId,
       queryParsed.data,
     );
@@ -30,12 +31,12 @@ const getVocabulary = async (req: Request, res: Response) => {
   }
 };
 
-const getVocabularyById = async (req: Request, res: Response) => {
+const getVocabularyEntryById = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const { id } = req.params;
 
-    const entry = await vocabularyRepository.findVocabularyById(
+    const entry = await vocabularyRepository.findEntryById(
       id as string,
       userId,
     );
@@ -51,7 +52,7 @@ const getVocabularyById = async (req: Request, res: Response) => {
   }
 };
 
-const createVocabulary = async (req: Request, res: Response) => {
+const createVocabularyEntry = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const parsed = createVocabularySchema.safeParse(req.body);
@@ -63,10 +64,7 @@ const createVocabulary = async (req: Request, res: Response) => {
       });
     }
 
-    const entry = await vocabularyRepository.createVocabulary(
-      userId,
-      parsed.data,
-    );
+    const entry = await vocabularyRepository.createEntry(userId, parsed.data);
 
     return res.status(201).json(entry);
   } catch (error) {
@@ -83,7 +81,7 @@ const createVocabulary = async (req: Request, res: Response) => {
   }
 };
 
-const updateVocabulary = async (req: Request, res: Response) => {
+const updateVocabularyEntry = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const { id } = req.params;
@@ -96,7 +94,7 @@ const updateVocabulary = async (req: Request, res: Response) => {
       });
     }
 
-    const updated = await vocabularyRepository.updateVocabulary(
+    const updated = await vocabularyRepository.updateEntry(
       id as string,
       userId,
       parsed.data,
@@ -113,12 +111,12 @@ const updateVocabulary = async (req: Request, res: Response) => {
   }
 };
 
-const deleteVocabulary = async (req: Request, res: Response) => {
+const deleteVocabularyEntry = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const { id } = req.params;
 
-    const deleted = await vocabularyRepository.deleteVocabulary(
+    const deleted = await vocabularyRepository.deleteEntry(
       id as string,
       userId,
     );
@@ -134,10 +132,24 @@ const deleteVocabulary = async (req: Request, res: Response) => {
   }
 };
 
+const vocabularyStats = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const stats: VocabularyStats =
+      await vocabularyRepository.getVocabularyStats(userId!);
+
+    return res.status(200).json(stats);
+  } catch (error) {
+    console.error("Get vocabulary stats error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 export const vocabularyController = {
-  getVocabulary,
-  getVocabularyById,
-  createVocabulary,
-  updateVocabulary,
-  deleteVocabulary,
+  getVocabularyEntries,
+  getVocabularyEntryById,
+  createVocabularyEntry,
+  updateVocabularyEntry,
+  deleteVocabularyEntry,
+  vocabularyStats,
 };
