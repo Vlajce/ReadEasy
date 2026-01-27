@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import { connectDB } from "../config/db.js";
 import config from "../config/config.js";
+import crypto from "crypto";
 import { bookRepository } from "../repositories/book.repository.js";
 import {
   gutendexBookSchema,
@@ -85,6 +86,27 @@ const saveLog = async (log: ImportLog) => {
   await fs.writeFile(LOG_FILE, JSON.stringify(log, null, 2));
 };
 
+// Normalize author name: "Last, First" -> "First Last", otherwise return trimmed input
+const formatAuthor = (raw?: string): string => {
+  if (!raw) return "Unknown";
+  const name = raw.trim();
+  if (!name) return "Unknown";
+
+  if (name.includes(",")) {
+    const parts = name
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (parts.length >= 2) {
+      const last = parts[0];
+      const rest = parts.slice(1).join(" ");
+      return `${rest} ${last}`.replace(/\s+/g, " ").trim();
+    }
+  }
+
+  return name.replace(/\s+/g, " ").trim();
+};
+
 // ============================
 // IMPORT LOGIC
 // ============================
@@ -113,12 +135,7 @@ const importBook = async (id: string): Promise<ImportResult> => {
     const cleanText = cleanGutenbergText(rawText);
     const wordCount = countWords(cleanText);
 
-    const safeTitle = data.title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
-
-    const fileName = `${id}-${safeTitle}.txt`;
+    const fileName = `${crypto.randomUUID()}.txt`;
     const localPath = path.join(STORAGE_DIR, fileName);
 
     await fs.writeFile(localPath, cleanText);
@@ -131,7 +148,7 @@ const importBook = async (id: string): Promise<ImportResult> => {
 
     const bookInput: BookInput = bookSchema.parse({
       title: data.title,
-      author: data.authors?.[0]?.name || "Unknown",
+      author: formatAuthor(data.authors?.[0]?.name),
       language: data.languages?.[0] || "en",
       description,
       filepath: relativePath,

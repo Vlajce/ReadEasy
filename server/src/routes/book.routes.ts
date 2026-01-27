@@ -15,6 +15,8 @@ const {
   getMyBooks,
   getMyBookById,
   getMyBookContent,
+  updateMyBookMetadata,
+  deleteMyBook,
 } = bookController;
 
 const router = Router();
@@ -26,10 +28,12 @@ router.get("/", getPublicBooks);
 router.get("/my", getMyBooks);
 router.get("/my/:id/content", validateObjectId("id"), getMyBookContent);
 router.get("/my/:id", validateObjectId("id"), getMyBookById);
+router.patch("/my/:id", validateObjectId("id"), updateMyBookMetadata);
+router.delete("/my/:id", validateObjectId("id"), deleteMyBook);
 router.post(
   "/private",
-  uploadPrivateBook.single("book"), // 2. Handles file upload
-  handleUploadError, // 3. Catches multer errors);
+  uploadPrivateBook.single("book"),
+  handleUploadError,
   uploadMyBook,
 );
 

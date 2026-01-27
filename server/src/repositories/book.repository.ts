@@ -1,8 +1,6 @@
-import fs from "fs";
-import fsPromises from "fs/promises";
-import path from "path";
 import { Book, type IBook } from "../models/book.model.js";
 import type { BookInput, FindBooksQuery } from "../validation/book.schema.js";
+import { storageService } from "../services/storage.service.js";
 
 interface PaginatedResult<T> {
   data: T[];
@@ -13,8 +11,6 @@ interface PaginatedResult<T> {
     totalPages: number;
   };
 }
-
-const STORAGE_ROOT = path.resolve(process.cwd(), "storage");
 
 const insertManyBooks = async (books: BookInput[]): Promise<IBook[]> => {
   return await Book.insertMany(books, { ordered: false });
@@ -86,24 +82,12 @@ const findPublicBookContentById = async (
     throw { status: 404, message: "Book content not found" };
   }
 
-  const absolute = path.resolve(STORAGE_ROOT, book.filepath);
-  const relative = path.relative(STORAGE_ROOT, absolute);
-
-  if (relative.startsWith("..") || path.isAbsolute(relative)) {
-    throw { status: 400, message: "Invalid book filepath" };
-  }
-
+  // Delegiramo Storage Servisu -> On brine o putanjama, pravima pristupa i streamovanju
   try {
-    const stats = await fsPromises.stat(absolute);
-    if (!stats.isFile()) {
-      throw { status: 404, message: "Book content not found" };
-    }
-    await fsPromises.access(absolute, fs.constants.R_OK);
-    const stream = fs.createReadStream(absolute, { encoding: "utf8" });
-    return { stream, size: stats.size };
-  } catch (err) {
-    console.error("Find public book content error:", err);
-    throw { status: 404, message: "Book content not found" };
+    return await storageService.getFileStream(book.filepath);
+  } catch (error) {
+    console.error("Storage error for public book:", error);
+    throw { status: 404, message: "Book content missing on disk" };
   }
 };
 
@@ -143,24 +127,11 @@ const findPrivateBookContentById = async (
     throw { status: 404, message: "Book content not found" };
   }
 
-  const absolute = path.resolve(STORAGE_ROOT, book.filepath);
-  const relative = path.relative(STORAGE_ROOT, absolute);
-
-  if (relative.startsWith("..") || path.isAbsolute(relative)) {
-    throw { status: 400, message: "Invalid book filepath" };
-  }
-
   try {
-    const stats = await fsPromises.stat(absolute);
-    if (!stats.isFile()) {
-      throw { status: 404, message: "Book content not found" };
-    }
-    await fsPromises.access(absolute, fs.constants.R_OK);
-    const stream = fs.createReadStream(absolute, { encoding: "utf8" });
-    return { stream, size: stats.size };
-  } catch (err) {
-    console.error("Find private book content error:", err);
-    throw { status: 404, message: "Book content not found" };
+    return await storageService.getFileStream(book.filepath);
+  } catch (error) {
+    console.error("Storage error for private book:", error);
+    throw { status: 404, message: "Book content missing on disk" };
   }
 };
 
@@ -170,25 +141,51 @@ const createPrivateBook = async (
     "title" | "author" | "language" | "filepath" | "wordCount"
   > & { ownerId: string },
 ): Promise<IBook> => {
+  // Ovde samo upisujemo u bazu. Ako postoji duplikat, baza baca grešku koju kontroler hvata.
   return Book.create({
     ...data,
     visibility: "private",
   });
 };
 
+const updatePrivateBookMetadata = async (
+  id: string,
+  userId: string,
+  updates: Partial<{
+    title: string;
+    author: string;
+    language: string;
+    description?: string;
+    subjects?: string[];
+  }>,
+): Promise<IBook | null> => {
+  return Book.findOneAndUpdate(
+    { _id: id, visibility: "private", ownerId: userId },
+    { $set: updates },
+    { new: true, runValidators: true, context: "query" },
+  )
+    .select("-filepath -__v")
+    .lean()
+    .exec();
+};
+
+const deletePrivateBook = async (
+  id: string,
+  userId: string,
+): Promise<IBook | null> => {
+  return Book.findOneAndDelete({
+    _id: id,
+    visibility: "private",
+    ownerId: userId,
+  }).exec();
+};
+
 const countWordsInFile = async (filePath: string): Promise<number> => {
-  const content = await fsPromises.readFile(filePath, "utf-8");
-  const trimmed = content.replace(/\s+/g, " ").trim();
-  if (!trimmed) return 0;
-  return trimmed.split(" ").length;
+  return await storageService.countWordsStream(filePath);
 };
 
 const deleteFile = async (filePath: string): Promise<void> => {
-  try {
-    await fsPromises.unlink(filePath);
-  } catch (err) {
-    console.error("Failed to delete file:", filePath, err);
-  }
+  await storageService.deleteFile(filePath);
 };
 
 export const bookRepository = {
@@ -200,6 +197,8 @@ export const bookRepository = {
   findPrivateBookById,
   findPrivateBookContentById,
   createPrivateBook,
+  updatePrivateBookMetadata,
+  deletePrivateBook,
   countWordsInFile,
   deleteFile,
 };

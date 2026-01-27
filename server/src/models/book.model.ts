@@ -56,12 +56,22 @@ const bookSchema = new Schema<IBook>(
 );
 
 // Full text search index
-bookSchema.index({
-  title: "text",
-  author: "text",
-});
+bookSchema.index(
+  {
+    title: "text",
+    author: "text",
+  },
+  { language_override: "dummy_language_field" },
+);
+// mora jer mongo ne podrzava stemmer za srpski
 
-// Compound index for private library queries
+// Compound index for private library queries, performance index
 bookSchema.index({ ownerId: 1, visibility: 1 });
+
+//Sprečava duplikate (isti naslov i jezik) za istog korisnika, SAMO ako je privatna knjiga.
+bookSchema.index(
+  { ownerId: 1, title: 1, language: 1 },
+  { unique: true, partialFilterExpression: { visibility: "private" } },
+);
 
 export const Book = mongoose.model<IBook>("Book", bookSchema);

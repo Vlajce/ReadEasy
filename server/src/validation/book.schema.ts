@@ -87,6 +87,39 @@ export const findBooksQuerySchema = z.object({
   sortOrder: z.enum(["asc", "desc"]).optional(),
 });
 
+export const uploadMetadataSchema = z.object({
+  title: z.string().min(1).max(255).trim(),
+  author: z.string().min(1).max(100).trim(),
+  language: z
+    .string()
+    .trim()
+    .transform((s) => s.toLowerCase())
+    .refine((s) => /^[a-z]{2}$/.test(s), {
+      message: "Language must be ISO 639-1 code (e.g. 'en')",
+    }),
+});
+
+export const updatePrivateBookSchema = z
+  .object({
+    title: z.string().min(1).max(255).trim().optional(),
+    author: z.string().min(1).max(100).trim().optional(),
+    language: z
+      .string()
+      .trim()
+      .transform((s) => s.toLowerCase())
+      .refine((s) => /^[a-z]{2}$/.test(s), {
+        message: "language mora biti ISO 639-1 (npr. 'en', 'sr')",
+      })
+      .optional(),
+    description: z.string().max(2000).optional(),
+    subjects: z.array(z.string()).optional(),
+  })
+  .refine((obj) => Object.keys(obj).length > 0, {
+    message: "At least one field must be provided",
+  });
+
 export type GutendexBook = z.infer<typeof gutendexBookSchema>;
 export type BookInput = z.infer<typeof bookSchema>;
 export type FindBooksQuery = z.infer<typeof findBooksQuerySchema>;
+export type UploadMetadata = z.infer<typeof uploadMetadataSchema>;
+export type UpdatePrivateBook = z.infer<typeof updatePrivateBookSchema>;
