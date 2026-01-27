@@ -1,6 +1,7 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto"; // Koristimo ugrađeni crypto modul
 import type { Request, Response, NextFunction } from "express";
 
 const PRIVATE_STORAGE = path.resolve("storage/private-books");
@@ -11,30 +12,18 @@ const storage = multer.diskStorage({
     const userId = req.user!.userId;
     const userDir = path.join(PRIVATE_STORAGE, userId);
 
-    if (!fs.existsSync(userDir)) {
-      fs.mkdirSync(userDir, { recursive: true });
-    }
-
-    cb(null, userDir);
+    // Async mkdir je bolji od sync, recursive: true ne baca grešku ako folder postoji
+    fs.mkdir(userDir, { recursive: true }, (err) => {
+      if (err) return cb(err, "");
+      cb(null, userDir);
+    });
   },
 
-  filename: (req, file, cb) => {
-    const userId = req.user!.userId;
-    const ext = path.extname(file.originalname).toLowerCase();
-
-    const baseName = path
-      .basename(file.originalname, ext)
-      .replace(/[^a-zA-Z0-9_-]/g, "_")
-      .slice(0, 100);
-
-    const finalName = `${baseName}${ext}`;
-    const fullPath = path.join(PRIVATE_STORAGE, userId, finalName);
-
-    if (fs.existsSync(fullPath)) {
-      return cb(new Error("DUPLICATE_FILE"), "");
-    }
-
-    cb(null, finalName);
+  filename: (_req, file, cb) => {
+    // Uvek generišemo unique ID + .txt
+    // Nema više brige oko duplikata, encodinga, race conditiona
+    const uniqueName = `${crypto.randomUUID()}.txt`;
+    cb(null, uniqueName);
   },
 });
 
@@ -45,6 +34,8 @@ const fileFilter = (
 ) => {
   const ext = path.extname(file.originalname).toLowerCase();
 
+  // Zadržavamo basic check, ali imaj na umu da mimetype može biti lažiran
+  // Dublja provera je moguća u kontroleru ako treba
   if (file.mimetype !== "text/plain" || ext !== ".txt") {
     cb(new Error("INVALID_FILE_TYPE"));
     return;
@@ -56,7 +47,7 @@ const fileFilter = (
 export const uploadPrivateBook = multer({
   storage,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10 MB
+    fileSize: 10 * 1024 * 1024, // 10 MB limit
   },
   fileFilter,
 });
@@ -76,9 +67,7 @@ export const handleUploadError = (
     return res.status(400).json({ message: "File upload error" });
   }
 
-  // Custom error codes for cleaner handling
   const errorMessages: Record<string, string> = {
-    DUPLICATE_FILE: "A book with this name already exists",
     INVALID_FILE_TYPE: "Only .txt files are allowed",
   };
 

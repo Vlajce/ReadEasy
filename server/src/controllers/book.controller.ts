@@ -1,7 +1,37 @@
 import path from "path";
 import type { Request, Response } from "express";
-import { findBooksQuerySchema } from "../validation/book.schema.js";
+import {
+  findBooksQuerySchema,
+  uploadMetadataSchema,
+  updatePrivateBookSchema,
+} from "../validation/book.schema.js";
 import { bookRepository } from "../repositories/book.repository.js";
+
+// --- ERROR HELPERS ---
+
+// Proverava da li je greška Mongo Duplicate Key Error (code 11000)
+const isDuplicateKeyError = (err: unknown): err is { code: number } => {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    (err as { code: unknown }).code === 11000
+  );
+};
+
+// Proverava da li je greška naša custom greška (ima status i message)
+const isAppError = (
+  err: unknown,
+): err is { status: number; message: string } => {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "status" in err &&
+    typeof (err as { status: unknown }).status === "number"
+  );
+};
+
+// --- CONTROLLERS ---
 
 const getPublicBooks = async (req: Request, res: Response) => {
   try {
@@ -24,7 +54,6 @@ const getPublicBooks = async (req: Request, res: Response) => {
 const getPublicBookById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    // mozemo ovo da uradimo jer vec imamo middleware koji validira id
     const book = await bookRepository.findPublicBookById(id as string);
 
     if (!book) {
@@ -59,7 +88,7 @@ const getPublicBookContent = async (req: Request, res: Response) => {
       }
     });
   } catch (err: unknown) {
-    if (isRepoError(err)) {
+    if (isAppError(err)) {
       return res.status(err.status).json({ message: err.message });
     }
     console.error("Get book content error:", err);
@@ -75,25 +104,30 @@ const uploadMyBook = async (req: Request, res: Response) => {
   }
 
   const userId = req.user!.userId;
+  const relativePath = path.join("private-books", userId, file.filename);
 
   try {
-    const wordCount = await bookRepository.countWordsInFile(file.path);
+    // 1. Validacija Metadata Inputa
+    const metadataResult = uploadMetadataSchema.safeParse(req.body);
 
-    const relativePath = path.join("private-books", userId, file.filename);
-
-    const { title, author, language } = req.body;
-
-    if (!title || !author || !language) {
-      await bookRepository.deleteFile(file.path);
-      return res
-        .status(400)
-        .json({ message: "Missing required book metadata" });
+    if (!metadataResult.success) {
+      await bookRepository.deleteFile(relativePath);
+      return res.status(400).json({
+        message: "Invalid metadata",
+        errors: metadataResult.error.flatten(),
+      });
     }
 
+    const { title, author, language } = metadataResult.data;
+
+    // 2. Brojanje reči
+    const wordCount = await bookRepository.countWordsInFile(relativePath);
+
+    // 3. Kreiranje u bazi
     const book = await bookRepository.createPrivateBook({
-      title: String(title).trim().slice(0, 255),
-      author: String(author).trim().slice(0, 100),
-      language: String(language).trim().toLowerCase().slice(0, 2),
+      title,
+      author,
+      language,
       filepath: relativePath,
       wordCount,
       ownerId: userId,
@@ -110,8 +144,18 @@ const uploadMyBook = async (req: Request, res: Response) => {
         createdAt: book.createdAt,
       },
     });
-  } catch (error) {
-    await bookRepository.deleteFile(file.path);
+  } catch (error: unknown) {
+    // CLEANUP: Uvek brišemo fajl na grešku
+    await bookRepository.deleteFile(relativePath);
+
+    // Handling Duplikata preko Type Guard-a (nema više 'any')
+    if (isDuplicateKeyError(error)) {
+      return res.status(409).json({
+        message:
+          "Book with this title and language already exists in your library",
+      });
+    }
+
     console.error("Upload private book error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
@@ -169,7 +213,7 @@ const getMyBookContent = async (req: Request, res: Response) => {
       }
     });
   } catch (err: unknown) {
-    if (isRepoError(err)) {
+    if (isAppError(err)) {
       return res.status(err.status).json({ message: err.message });
     }
     console.error("Get my book content error:", err);
@@ -177,10 +221,76 @@ const getMyBookContent = async (req: Request, res: Response) => {
   }
 };
 
-const isRepoError = (e: unknown): e is { status: number; message?: string } => {
-  if (typeof e !== "object" || e === null) return false;
-  const r = e as Record<string, unknown>;
-  return typeof r.status === "number";
+const updateMyBookMetadata = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const { id } = req.params;
+
+    const parsed = updatePrivateBookSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        message: "Invalid update payload",
+        errors: parsed.error.flatten(),
+      });
+    }
+
+    const updates = parsed.data;
+    // ensure language lowered (zod transform already does it)
+
+    const updated = await bookRepository.updatePrivateBookMetadata(
+      id as string,
+      userId,
+      updates,
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Book not found" });
+    }
+
+    return res.status(200).json({ message: "Book updated", book: updated });
+  } catch (err: unknown) {
+    if (isDuplicateKeyError(err)) {
+      return res.status(409).json({
+        message:
+          "Another book with this title and language already exists in your library",
+      });
+    }
+    console.error("Update private book metadata error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const deleteMyBook = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const { id } = req.params;
+
+    const deleted = await bookRepository.deletePrivateBook(
+      id as string,
+      userId,
+    );
+
+    if (!deleted) {
+      return res.status(404).json({ message: "Book not found" });
+    }
+
+    try {
+      if (deleted.filepath) {
+        await bookRepository.deleteFile(deleted.filepath);
+      }
+    } catch (fsErr) {
+      console.error("File deletion failed after DB delete:", fsErr);
+      return res.status(200).json({
+        message: "Book deleted from database, but file cleanup failed",
+        cleanupFailed: true,
+      });
+    }
+
+    return res.status(200).json({ message: "Book deleted successfully" });
+  } catch (err) {
+    console.error("Delete private book error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 };
 
 export const bookController = {
@@ -191,4 +301,6 @@ export const bookController = {
   getMyBooks,
   getMyBookById,
   getMyBookContent,
+  updateMyBookMetadata,
+  deleteMyBook,
 };

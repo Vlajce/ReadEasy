@@ -5,6 +5,7 @@ dotenv.config();
 const requiredEnvVars = [
   "MONGO_URI",
   "PORT",
+  "CLIENT_ORIGIN",
   "JWT_ACCESS_SECRET",
   "JWT_ACCESS_EXPIRES_IN",
   "JWT_REFRESH_SECRET",
@@ -20,6 +21,7 @@ requiredEnvVars.forEach((key) => {
 const config = {
   env: process.env.NODE_ENV || "development",
   port: parseInt(process.env.PORT || "5000", 10),
+  clientOrigin: process.env.CLIENT_ORIGIN!.split(","),
   mongoUri: process.env.MONGO_URI!,
   importConcurrency: parseInt(process.env.IMPORT_CONCURRENCY || "5", 10),
   jwt: {
