@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { vocabularyController } from "../controllers/vocabulary.controller.js";
-import isAuthenticated from "../middlewares/auth.middleware.js";
-import validateObjectId from "../middlewares/validateObjectId.middleware.js";
+import { isAuthenticated } from "../middlewares/auth.middleware.js";
+import { validateObjectId } from "../middlewares/validateObjectId.middleware.js";
 
 const {
   getVocabularyEntries,

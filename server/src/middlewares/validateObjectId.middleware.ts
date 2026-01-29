@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import type { Request, Response, NextFunction } from "express";
 
-const validateObjectId = (param = "id") => {
+export const validateObjectId = (param = "id") => {
   return (req: Request, res: Response, next: NextFunction) => {
     const value = req.params[param];
 
@@ -17,5 +17,3 @@ const validateObjectId = (param = "id") => {
     next();
   };
 };
-
-export default validateObjectId;
