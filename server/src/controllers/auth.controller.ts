@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import bcrypt from "bcrypt";
 import { User } from "../models/user.model.js";
 import { registerSchema, loginSchema } from "../validation/auth.schema.js";
@@ -8,63 +8,49 @@ import {
   verifyRefreshToken,
 } from "../utils/jwt.js";
 import config from "../config/config.js";
+import { ConflictError } from "../errors/conflict.error.js";
+import { sendSuccess } from "../utils/response.handler.js";
+import { UnauthorizedError } from "../errors/unauthorized.error.js";
 
-const register = async (req: Request, res: Response) => {
+const register = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const parsed = registerSchema.safeParse(req.body);
-
-    if (!parsed.success) {
-      return res.status(400).json({
-        message: "Invalid input",
-        errors: parsed.error.flatten(),
-      });
-    }
-
-    const { username, email, password } = parsed.data;
+    const { username, email, password } = registerSchema.parse(req.body);
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(409).json({ message: "User already exists" });
+      throw new ConflictError("User already exists");
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const user = await User.create({
       username,
       email,
       password: hashedPassword,
     });
 
-    return res.status(201).json({
-      id: user._id,
-      username: user.username,
-      email: user.email,
-    });
+    sendSuccess(
+      res,
+      { id: user._id, username: user.username, email: user.email },
+      "User registered successfully",
+      201,
+    );
   } catch (error) {
-    console.error("Registration error:", error);
-    res.status(500).json({ message: "Internal server error" });
+    next(error);
   }
 };
 
-const login = async (req: Request, res: Response) => {
+const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const parsed = loginSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({
-        message: "Invalid input",
-        errors: parsed.error.flatten(),
-      });
-    }
+    const { email, password } = loginSchema.parse(req.body);
 
-    const { email, password } = parsed.data;
     const user = await User.findOne({ email }).select("+password");
     if (!user) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      throw new UnauthorizedError("Invalid credentials");
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      throw new UnauthorizedError("Invalid credentials");
     }
 
     const accessToken = signAccessToken(user._id.toString());
@@ -78,28 +64,31 @@ const login = async (req: Request, res: Response) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.status(200).json({
-      accessToken,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
+    sendSuccess(
+      res,
+      {
+        accessToken,
+        user: { id: user._id, username: user.username, email: user.email },
       },
-    });
+      "Login successful",
+      200,
+    );
   } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({ message: "Internal server error" });
+    next(error);
   }
 };
 
-const refresh = async (req: Request, res: Response) => {
+const refresh = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const token = req.cookies?.refreshToken;
-    if (!token) return res.status(401).json({ message: "No refresh token" });
+    if (!token) {
+      throw new UnauthorizedError("No refresh token");
+    }
 
     const payload = verifyRefreshToken(token);
-    if (!payload || !payload.userId)
-      return res.status(401).json({ message: "Invalid refresh token payload" });
+    if (!payload || !payload.userId) {
+      throw new UnauthorizedError("Invalid refresh token");
+    }
 
     const accessToken = signAccessToken(payload.userId);
     const newRefreshToken = signRefreshToken(payload.userId);
@@ -112,20 +101,18 @@ const refresh = async (req: Request, res: Response) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    return res.status(200).json({ accessToken });
+    sendSuccess(res, { accessToken }, "Token refreshed successfully", 200);
   } catch (error) {
-    console.error("Refresh error:", error);
-    return res.status(401).json({ message: "Invalid refresh token" });
+    next(error);
   }
 };
 
-const logout = async (req: Request, res: Response) => {
+const logout = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     res.clearCookie("refreshToken", { path: "/auth/refresh" });
-    return res.status(200).json({ message: "Logged out" });
+    sendSuccess(res, null, "Logged out successfully", 200);
   } catch (error) {
-    console.error("Logout error:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    next(error);
   }
 };
 

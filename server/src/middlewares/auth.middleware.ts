@@ -1,26 +1,29 @@
 import type { Request, Response, NextFunction } from "express";
 import { verifyAccessToken } from "../utils/jwt.js";
+import { UnauthorizedError } from "../errors/unauthorized.error.js";
 
 export const isAuthenticated = (
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction,
 ) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader)
-    return res.status(401).json({ message: "Missing Authorization header" });
+  if (!authHeader) {
+    return next(new UnauthorizedError("Missing Authorization header"));
+  }
 
-  const [type, token] = authHeader.split(" ");
-
-  if (type !== "Bearer" || !token)
-    return res.status(401).json({ message: "Invalid authorization format" });
+  const parts = authHeader.trim().split(/\s+/);
+  const type = parts[0];
+  const token = parts[1];
+  if (type?.toLowerCase() !== "bearer" || !token) {
+    return next(new UnauthorizedError("Invalid authorization format"));
+  }
 
   try {
     const payload = verifyAccessToken(token);
     req.user = { userId: payload.userId };
-    next();
-  } catch (error) {
-    console.error("Auth middleware error:", error);
-    return res.status(401).json({ message: "Invalid or expired token" });
+    return next();
+  } catch {
+    return next(new UnauthorizedError("Invalid or expired token"));
   }
 };
