@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 import { AppError } from "../errors/app.error.js";
 import { sendError } from "../utils/response.handler.js";
 import { ErrorCodes } from "../utils/error.codes.js";
+import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
 
 export const errorHandler = (
   err: Error,
@@ -17,6 +18,15 @@ export const errorHandler = (
   if (err instanceof ZodError) {
     const message = err.issues[0]?.message || "Validation failer";
     return sendError(res, message, ErrorCodes.VAL_FAILED, 400);
+  }
+
+  if (err instanceof JsonWebTokenError || err instanceof TokenExpiredError) {
+    return sendError(
+      res,
+      "Invalid or expired token",
+      ErrorCodes.AUTH_INVALID_TOKEN,
+      401,
+    );
   }
 
   console.error("UNEXPECTED ERROR:", err);

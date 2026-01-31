@@ -1,29 +1,26 @@
 import type { Request, Response, NextFunction } from "express";
 import { verifyAccessToken } from "../utils/jwt.js";
 import { UnauthorizedError } from "../errors/unauthorized.error.js";
+import { asyncHandler } from "../utils/async.handler.js";
 
-export const isAuthenticated = (
-  req: Request,
-  _res: Response,
-  next: NextFunction,
-) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return next(new UnauthorizedError("Missing Authorization header"));
-  }
+export const isAuthenticated = asyncHandler(
+  async (req: Request, _res: Response, next: NextFunction) => {
+    const authHeader = req.headers.authorization;
 
-  const parts = authHeader.trim().split(/\s+/);
-  const type = parts[0];
-  const token = parts[1];
-  if (type?.toLowerCase() !== "bearer" || !token) {
-    return next(new UnauthorizedError("Invalid authorization format"));
-  }
+    if (!authHeader) {
+      throw new UnauthorizedError("Missing Authorization header");
+    }
 
-  try {
+    const [type, token] = authHeader.trim().split(/\s+/);
+
+    if (type?.toLowerCase() !== "bearer" || !token) {
+      throw new UnauthorizedError("Invalid authorization format");
+    }
+
+    // Bez try-catch! Ako pukne, leti direktno u error.middleware
     const payload = verifyAccessToken(token);
+
     req.user = { userId: payload.userId };
-    return next();
-  } catch {
-    return next(new UnauthorizedError("Invalid or expired token"));
-  }
-};
+    next();
+  },
+);
