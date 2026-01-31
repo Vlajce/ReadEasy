@@ -1,9 +1,12 @@
 import type { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
+import jwt from "jsonwebtoken"; // <--- Promena ovde: default import
 import { AppError } from "../errors/app.error.js";
 import { sendError } from "../utils/response.handler.js";
 import { ErrorCodes } from "../utils/error.codes.js";
-import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
+
+// Vadimo klase iz default importa
+const { JsonWebTokenError, TokenExpiredError } = jwt;
 
 export const errorHandler = (
   err: Error,
@@ -16,10 +19,11 @@ export const errorHandler = (
   }
 
   if (err instanceof ZodError) {
-    const message = err.issues[0]?.message || "Validation failer";
+    const message = err.issues[0]?.message || "Validation failed";
     return sendError(res, message, ErrorCodes.VAL_FAILED, 400);
   }
 
+  // Sada ovo treba da radi ispravno
   if (err instanceof JsonWebTokenError || err instanceof TokenExpiredError) {
     return sendError(
       res,
