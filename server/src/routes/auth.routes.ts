@@ -10,4 +10,4 @@ router.post("/login", login);
 router.post("/refresh", refresh);
 router.post("/logout", logout);
 
-export { router as authRoutes };
+export const authRoutes = router;

@@ -5,7 +5,7 @@ import { updateUserSchema } from "../validation/user.schema.js";
 import { sendSuccess } from "../utils/response.handler.js";
 import { NotFoundError } from "../errors/not.found.error.js";
 import { ConflictError } from "../errors/conflict.error.js";
-import { toUserDTO } from "../types/user.dto.js";
+import { toUserDTO } from "../mappers/user.mapper.js";
 
 const getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user!.userId;

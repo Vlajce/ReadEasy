@@ -1,9 +1,10 @@
 import type { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
-import jwt from "jsonwebtoken"; // <--- Promena ovde: default import
+import jwt from "jsonwebtoken";
 import { AppError } from "../errors/app.error.js";
 import { sendError } from "../utils/response.handler.js";
 import { ErrorCodes } from "../utils/error.codes.js";
+import { isMongoDuplicateError } from "../utils/db.errors.js";
 
 // Vadimo klase iz default importa
 const { JsonWebTokenError, TokenExpiredError } = jwt;
@@ -23,7 +24,6 @@ export const errorHandler = (
     return sendError(res, message, ErrorCodes.VAL_FAILED, 400);
   }
 
-  // Sada ovo treba da radi ispravno
   if (err instanceof JsonWebTokenError || err instanceof TokenExpiredError) {
     return sendError(
       res,
@@ -31,6 +31,10 @@ export const errorHandler = (
       ErrorCodes.AUTH_INVALID_TOKEN,
       401,
     );
+  }
+
+  if (isMongoDuplicateError(err)) {
+    return sendError(res, "Resource conflict", ErrorCodes.RES_CONFLICT, 409);
   }
 
   console.error("UNEXPECTED ERROR:", err);

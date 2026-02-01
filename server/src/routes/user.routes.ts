@@ -10,6 +10,6 @@ const router = Router();
 router.use(isAuthenticated);
 
 router.get("/me", getCurrentUser);
-router.put("/me/username", updateCurrentUser);
+router.put("/me", updateCurrentUser);
 
-export { router as userRoutes };
+export const userRoutes = router;

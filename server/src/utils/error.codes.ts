@@ -6,6 +6,7 @@ export const ErrorCodes = {
 
   // Validation
   VAL_FAILED: "VAL_001",
+  VAL_BAD_REQUEST: "VAL_002",
 
   // Resources
   RES_NOT_FOUND: "RES_001",

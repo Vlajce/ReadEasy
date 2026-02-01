@@ -12,7 +12,8 @@ import { ConflictError } from "../errors/conflict.error.js";
 import { sendSuccess } from "../utils/response.handler.js";
 import { UnauthorizedError } from "../errors/unauthorized.error.js";
 import { asyncHandler } from "../utils/async.handler.js";
-import { toUserDTO } from "../types/user.dto.js";
+import { toUserDTO } from "../mappers/user.mapper.js";
+import type { AuthResponseDTO } from "../types/user.dto.js";
 
 const register = asyncHandler(async (req: Request, res: Response) => {
   const { username, email, password } = registerSchema.parse(req.body);
@@ -56,7 +57,7 @@ const login = asyncHandler(async (req: Request, res: Response) => {
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
-  return sendSuccess(
+  return sendSuccess<AuthResponseDTO>(
     res,
     {
       accessToken,
