@@ -14,23 +14,41 @@ import { UnauthorizedError } from "../errors/unauthorized.error.js";
 import { asyncHandler } from "../utils/async.handler.js";
 import { toUserDTO } from "../mappers/user.mapper.js";
 import type { AuthResponseDTO } from "../types/user.dto.js";
+import { isMongoDuplicateError } from "../utils/db.errors.js";
 
 const register = asyncHandler(async (req: Request, res: Response) => {
   const { username, email, password } = registerSchema.parse(req.body);
 
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    throw new ConflictError("User already exists");
-  }
-
   const hashedPassword = await bcrypt.hash(password, 10);
-  const user = await User.create({
-    username,
-    email,
-    password: hashedPassword,
-  });
 
-  return sendSuccess(res, toUserDTO(user), "User registered successfully", 201);
+  try {
+    const user = await User.create({
+      username,
+      email,
+      password: hashedPassword,
+    });
+
+    return sendSuccess(
+      res,
+      toUserDTO(user),
+      "User registered successfully",
+      201,
+    );
+  } catch (error) {
+    if (isMongoDuplicateError(error)) {
+      const field = Object.keys(error.keyPattern)[0] || "unknown";
+
+      const messages: Record<string, string> = {
+        email: "User with this email already exists",
+        username: "User with this username already exists",
+      };
+
+      throw new ConflictError(
+        messages[field] || "User with this information already exists",
+      );
+    }
+    throw error;
+  }
 });
 
 const login = asyncHandler(async (req: Request, res: Response) => {

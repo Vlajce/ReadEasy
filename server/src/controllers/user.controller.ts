@@ -6,6 +6,7 @@ import { sendSuccess } from "../utils/response.handler.js";
 import { NotFoundError } from "../errors/not.found.error.js";
 import { ConflictError } from "../errors/conflict.error.js";
 import { toUserDTO } from "../mappers/user.mapper.js";
+import { isMongoDuplicateError } from "../utils/db.errors.js";
 
 const getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user!.userId;
@@ -26,21 +27,46 @@ const updateCurrentUser = asyncHandler(async (req: Request, res: Response) => {
   if (updateData.email) {
     const existingUser = await userRepository.findByEmail(updateData.email);
     if (existingUser && existingUser._id.toString() !== userId) {
-      throw new ConflictError("Email already in use");
+      throw new ConflictError("User with this email already exists");
     }
   }
 
-  const updatedUser = await userRepository.update(userId, updateData);
-  if (!updatedUser) {
-    throw new NotFoundError("User not found");
+  if (updateData.username) {
+    const existingUser = await userRepository.findByUsername(
+      updateData.username,
+    );
+    if (existingUser && existingUser._id.toString() !== userId) {
+      throw new ConflictError("User with this username already exists");
+    }
   }
+  try {
+    const updatedUser = await userRepository.update(userId, updateData);
 
-  return sendSuccess(
-    res,
-    toUserDTO(updatedUser),
-    "Profile updated successfully",
-    200,
-  );
+    if (!updatedUser) {
+      throw new NotFoundError("User not found");
+    }
+
+    return sendSuccess(
+      res,
+      toUserDTO(updatedUser),
+      "Profile updated successfully",
+      200,
+    );
+  } catch (error: unknown) {
+    if (isMongoDuplicateError(error)) {
+      const field = Object.keys(error.keyPattern)[0] || "unknown";
+
+      const messages: Record<string, string> = {
+        email: "User with this email already exists",
+        username: "User with this username already exists",
+      };
+
+      throw new ConflictError(
+        messages[field] || "User with this information already exists",
+      );
+    }
+    throw error;
+  }
 });
 
 export const userController = { getCurrentUser, updateCurrentUser };

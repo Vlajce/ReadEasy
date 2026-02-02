@@ -10,7 +10,7 @@ const usernameSchema = z
     "Username can only contain letters, numbers, and underscores",
   )
   .min(3, "Username must be at least 3 characters long")
-  .max(20, "Username must be at most 20 characters long");
+  .max(25, "Username must be at most 25 characters long");
 
 const passwordSchema = z
   .string({
@@ -30,7 +30,9 @@ const emailSchema = z
   .string({
     error: "Email is required",
   })
-  .email("Invalid email");
+  .email("Invalid email")
+  .trim()
+  .lowercase();
 
 export const registerSchema = z.object({
   username: usernameSchema,
