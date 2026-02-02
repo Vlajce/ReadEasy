@@ -20,7 +20,7 @@ const getPublicBooks = asyncHandler(async (req: Request, res: Response) => {
   const query = findBooksQuerySchema.parse(req.query);
   const result = await bookRepository.findPublicBooks(query);
 
-  const paginatedDTO = {
+  const paginatedDTO: PaginatedBooksDTO = {
     data: result.data.map(toBookListDTO),
     meta: result.meta,
   };
@@ -64,8 +64,8 @@ const getPublicBookContent = asyncHandler(
     res.setHeader("Content-Length", String(size));
     stream.pipe(res);
 
-    stream.on("error", (err) => {
-      console.error("Stream error:", err);
+    stream.on("error", (error) => {
+      console.error("Stream error:", error);
       if (!res.headersSent) {
         return sendError(
           res,
@@ -108,18 +108,21 @@ const uploadMyBook = asyncHandler(async (req: Request, res: Response) => {
       "Private book uploaded successfully",
       201,
     );
-  } catch (err: unknown) {
-    await bookRepository.deleteFile(relativePath).catch((cleanupErr) => {
-      console.error("Failed to cleanup uploaded file after error:", cleanupErr);
+  } catch (error) {
+    await bookRepository.deleteFile(relativePath).catch((cleanupError) => {
+      console.error(
+        "Failed to cleanup uploaded file after error:",
+        cleanupError,
+      );
     });
 
-    if (isMongoDuplicateError(err)) {
+    if (isMongoDuplicateError(error)) {
       throw new ConflictError(
         "Book with this title and language already exists in your library",
       );
     }
 
-    throw err;
+    throw error;
   }
 });
 
@@ -129,7 +132,7 @@ const getMyBooks = asyncHandler(async (req: Request, res: Response) => {
 
   const result = await bookRepository.findPrivateBooks(userId, query);
 
-  const paginatedDTO = {
+  const paginatedDTO: PaginatedBooksDTO = {
     data: result.data.map(toBookListDTO),
     meta: result.meta,
   };
@@ -178,8 +181,8 @@ const getMyBookContent = asyncHandler(async (req: Request, res: Response) => {
   res.setHeader("Content-Length", String(size));
   stream.pipe(res);
 
-  stream.on("error", (err) => {
-    console.error("Stream error:", err);
+  stream.on("error", (error) => {
+    console.error("Stream error:", error);
     if (!res.headersSent) {
       return sendError(
         res,
@@ -217,13 +220,13 @@ const updateMyBookMetadata = asyncHandler(
         "Book updated successfully",
         200,
       );
-    } catch (err: unknown) {
-      if (isMongoDuplicateError(err)) {
+    } catch (error) {
+      if (isMongoDuplicateError(error)) {
         throw new ConflictError(
           "Another book with this title and language already exists in your library",
         );
       }
-      throw err;
+      throw error;
     }
   },
 );
@@ -242,8 +245,8 @@ const deleteMyBook = asyncHandler(async (req: Request, res: Response) => {
     if (deleted.filepath) {
       await bookRepository.deleteFile(deleted.filepath);
     }
-  } catch (fsErr) {
-    console.error("File deletion failed after DB delete:", fsErr);
+  } catch (fsError) {
+    console.error("File deletion failed after DB delete:", fsError);
   }
 
   return sendSuccess(res, null, "Book deleted successfully", 200);

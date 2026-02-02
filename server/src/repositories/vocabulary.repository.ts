@@ -8,17 +8,9 @@ import type {
   UpdateVocabularyInput,
   FindVocabularyQueryInput,
 } from "../validation/vocabulary.schema.js";
-import type { VocabularyStats } from "../types/vocabulary.types.js";
+import type { VocabularyStatsDTO } from "../types/vocabulary.dto.js";
 
-interface PaginatedResult<T> {
-  data: T[];
-  meta: {
-    page: number;
-    limit: number;
-    totalItems: number;
-    totalPages: number;
-  };
-}
+const EXCLUDE_FIELDS = "-__v";
 
 const createEntry = async (
   userId: string,
@@ -39,7 +31,10 @@ const createEntry = async (
 const findEntries = async (
   userId: string,
   query: FindVocabularyQueryInput,
-): Promise<PaginatedResult<IVocabularyEntry>> => {
+): Promise<{
+  data: IVocabularyEntry[];
+  meta: { page: number; limit: number; totalItems: number; totalPages: number };
+}> => {
   const pageNum = Math.max(1, Number(query.page) || 1);
   const limitNum = Math.min(100, Math.max(1, Number(query.limit) || 20));
 
@@ -53,11 +48,12 @@ const findEntries = async (
     filter.$text = { $search: query.search };
   }
 
-  const total = await VocabularyEntry.countDocuments(filter).exec();
-  const totalPages = Math.ceil(total / limitNum);
+  const totalItems = await VocabularyEntry.countDocuments(filter).exec();
+  const totalPages = Math.ceil(totalItems / limitNum);
   const effectivePage = totalPages > 0 ? Math.min(pageNum, totalPages) : 1;
 
   const data = await VocabularyEntry.find(filter)
+    .select(EXCLUDE_FIELDS)
     .sort({ createdAt: -1 })
     .skip((effectivePage - 1) * limitNum)
     .limit(limitNum)
@@ -69,7 +65,7 @@ const findEntries = async (
     meta: {
       page: effectivePage,
       limit: limitNum,
-      totalItems: total,
+      totalItems,
       totalPages,
     },
   };
@@ -79,7 +75,10 @@ const findEntryById = async (
   id: string,
   userId: string,
 ): Promise<IVocabularyEntry | null> => {
-  return VocabularyEntry.findOne({ _id: id, userId }).lean().exec();
+  return VocabularyEntry.findOne({ _id: id, userId })
+    .select(EXCLUDE_FIELDS)
+    .lean()
+    .exec();
 };
 
 const updateEntry = async (
@@ -92,6 +91,7 @@ const updateEntry = async (
     { $set: data },
     { new: true, runValidators: true },
   )
+    .select(EXCLUDE_FIELDS)
     .lean()
     .exec();
 };
@@ -101,50 +101,64 @@ const deleteEntry = async (id: string, userId: string): Promise<boolean> => {
   return result.deletedCount === 1;
 };
 
-const getVocabularyStats = async (userId: string): Promise<VocabularyStats> => {
+const getVocabularyStats = async (
+  userId: string,
+): Promise<VocabularyStatsDTO> => {
   const userObjectId = new Types.ObjectId(userId);
 
-  const statusAgg = await VocabularyEntry.aggregate([
-    { $match: { userId: userObjectId } },
-    { $group: { _id: "$status", count: { $sum: 1 } } },
-  ]);
-
-  const byStatus: VocabularyStats["byStatus"] = {
-    new: 0,
-    learning: 0,
-    mastered: 0,
-  };
-  statusAgg.forEach((item) => {
-    byStatus[item._id as "new" | "learning" | "mastered"] = item.count;
-  });
-
-  const languageAgg = await VocabularyEntry.aggregate([
-    { $match: { userId: userObjectId } },
-    { $group: { _id: "$language", count: { $sum: 1 } } },
-  ]);
-
-  const byLanguage: VocabularyStats["byLanguage"] = {};
-  languageAgg.forEach((item) => {
-    byLanguage[item._id] = item.count;
-  });
-
-  const dayAgg = await VocabularyEntry.aggregate([
+  // 1. JEDAN UPIT DO BAZE (Best Practice)
+  // Koristimo Aggregation Framework sa $facet-om da paralelizujemo obradu na nivou baze
+  const [result] = await VocabularyEntry.aggregate([
+    // Koristi se index { userId: 1, createdAt: -1 } za brzo filtriranje
     { $match: { userId: userObjectId } },
     {
-      $group: {
-        _id: {
-          $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
-        },
-        count: { $sum: 1 },
+      $facet: {
+        // Pipeline 1: Statusi
+        byStatus: [{ $group: { _id: "$status", count: { $sum: 1 } } }],
+        // Pipeline 2: Jezici
+        byLanguage: [{ $group: { _id: "$language", count: { $sum: 1 } } }],
+        // Pipeline 3: Aktivnost po danima
+        byDay: [
+          {
+            $group: {
+              _id: {
+                $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+              },
+              count: { $sum: 1 },
+            },
+          },
+          { $sort: { _id: 1 } }, // Sortiramo datume hronološki
+        ],
       },
     },
-  ]);
+  ]).exec();
 
-  const byDay: VocabularyStats["byDay"] = {};
-  dayAgg.forEach((item) => {
-    byDay[item._id] = item.count;
+  // Inicijalizacija default vrednosti
+  const stats: VocabularyStatsDTO = {
+    byStatus: { new: 0, learning: 0, mastered: 0 },
+    byLanguage: {},
+    byDay: {},
+  };
+
+  // Ako je "result" undefined (ekstremno retko) ili korisnik nema reči
+  if (!result) return stats;
+
+  // 2. MAPIRANJE REZULTATA (Transformacija niza u mape)
+  result.byStatus.forEach((item: { _id: string; count: number }) => {
+    if (["new", "learning", "mastered"].includes(item._id)) {
+      stats.byStatus[item._id as "new" | "learning" | "mastered"] = item.count;
+    }
   });
-  return { byStatus, byLanguage, byDay };
+
+  result.byLanguage.forEach((item: { _id: string; count: number }) => {
+    if (item._id) stats.byLanguage[item._id] = item.count;
+  });
+
+  result.byDay.forEach((item: { _id: string; count: number }) => {
+    if (item._id) stats.byDay[item._id] = item.count;
+  });
+
+  return stats;
 };
 
 export const vocabularyRepository = {
