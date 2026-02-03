@@ -44,17 +44,36 @@ const findEntries = async (
   if (query.status) filter.status = query.status;
   if (query.language) filter.language = query.language;
 
-  if (query.search) {
-    filter.$text = { $search: query.search };
+  const hasSearch = !!query.search;
+  let useTextSearch = false;
+
+  if (hasSearch) {
+    const searchTerm = query.search;
+
+    if (searchTerm!.length <= 4) {
+      const escaped = query.search!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      filter.word = { $regex: `^${escaped}` };
+    } else {
+      filter.$text = { $search: query.search };
+      useTextSearch = true;
+    }
   }
 
   const totalItems = await VocabularyEntry.countDocuments(filter).exec();
   const totalPages = Math.ceil(totalItems / limitNum);
   const effectivePage = totalPages > 0 ? Math.min(pageNum, totalPages) : 1;
 
-  const data = await VocabularyEntry.find(filter)
-    .select(EXCLUDE_FIELDS)
-    .sort({ createdAt: -1 })
+  let dataQuery = VocabularyEntry.find(filter).select(EXCLUDE_FIELDS);
+
+  if (useTextSearch) {
+    dataQuery = dataQuery.select({ score: { $meta: "textScore" } }).sort({
+      score: { $meta: "textScore" },
+    });
+  } else {
+    dataQuery = dataQuery.sort({ createdAt: -1 });
+  }
+
+  const data = await dataQuery
     .skip((effectivePage - 1) * limitNum)
     .limit(limitNum)
     .lean()
