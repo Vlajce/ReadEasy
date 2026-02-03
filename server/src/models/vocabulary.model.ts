@@ -92,7 +92,7 @@ vocabularySchema.index(
 );
 
 // Prefix search (brza pretraga po word)
-vocabularySchema.index({ word: 1, userId: 1 }, { name: "idx_user_word" });
+vocabularySchema.index({ userId: 1, word: 1 }, { name: "idx_user_word" });
 
 vocabularySchema.index(
   { word: "text", context: "text" },

@@ -48,10 +48,11 @@ const findEntries = async (
   let useTextSearch = false;
 
   if (hasSearch) {
-    const searchTerm = query.search!.trim().toLowerCase();
+    const searchTerm = query.search;
 
-    if (searchTerm.length <= 3) {
-      filter.word = { $regex: `^${searchTerm}`, $options: "i" };
+    if (searchTerm!.length <= 4) {
+      const escaped = query.search!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      filter.word = { $regex: `^${escaped}` };
     } else {
       filter.$text = { $search: query.search };
       useTextSearch = true;
