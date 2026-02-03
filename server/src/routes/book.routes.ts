@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { bookController } from "../controllers/book.controller.js";
-import isAuthenticated from "../middlewares/auth.middleware.js";
-import validateObjectId from "../middlewares/validateObjectId.middleware.js";
+import { isAuthenticated } from "../middlewares/auth.middleware.js";
+import { validateObjectId } from "../middlewares/validateObjectId.middleware.js";
 import {
   uploadPrivateBook,
   handleUploadError,

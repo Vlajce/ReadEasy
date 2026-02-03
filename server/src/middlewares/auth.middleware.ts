@@ -1,24 +1,25 @@
 import type { Request, Response, NextFunction } from "express";
 import { verifyAccessToken } from "../utils/jwt.js";
+import { UnauthorizedError } from "../errors/unauthorized.error.js";
+import { asyncHandler } from "../utils/async.handler.js";
 
-const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader)
-    return res.status(401).json({ message: "Missing Authorization header" });
+export const isAuthenticated = asyncHandler(
+  async (req: Request, _res: Response, next: NextFunction) => {
+    const authHeader = req.headers.authorization;
 
-  const [type, token] = authHeader.split(" ");
+    if (!authHeader) {
+      throw new UnauthorizedError("Missing Authorization header");
+    }
 
-  if (type !== "Bearer" || !token)
-    return res.status(401).json({ message: "Invalid authorization format" });
+    const [type, token] = authHeader.trim().split(/\s+/);
 
-  try {
+    if (type?.toLowerCase() !== "bearer" || !token) {
+      throw new UnauthorizedError("Invalid authorization format");
+    }
+
     const payload = verifyAccessToken(token);
+
     req.user = { userId: payload.userId };
     next();
-  } catch (error) {
-    console.error("Auth middleware error:", error);
-    return res.status(401).json({ message: "Invalid or expired token" });
-  }
-};
-
-export default isAuthenticated;
+  },
+);

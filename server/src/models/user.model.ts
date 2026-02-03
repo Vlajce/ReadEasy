@@ -14,7 +14,6 @@ const userSchema = new Schema<IUser>(
     username: {
       type: String,
       required: true,
-      unique: true,
       minlength: 3,
       maxlength: 25,
       trim: true,
@@ -22,7 +21,6 @@ const userSchema = new Schema<IUser>(
     email: {
       type: String,
       required: true,
-      unique: true,
       lowercase: true,
       trim: true,
     },
@@ -34,5 +32,16 @@ const userSchema = new Schema<IUser>(
   },
   { timestamps: true },
 );
+
+// 1. UNIQUE USERNAME (Case-Insensitive) - cuvamo originalni username
+userSchema.index(
+  { username: 1 },
+  {
+    unique: true,
+    name: "idx_username_unique",
+    collation: { locale: "en", strength: 2 }, // 'marko' == 'Marko'
+  },
+);
+userSchema.index({ email: 1 }, { unique: true, name: "idx_email_unique" });
 
 export const User = mongoose.model<IUser>("User", userSchema);

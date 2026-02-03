@@ -5,34 +5,43 @@ import {
   updateVocabularySchema,
   findVocabularyQuerySchema,
 } from "../validation/vocabulary.schema.js";
-import type { VocabularyStats } from "../types/vocabulary.types.js";
+import { asyncHandler } from "../utils/async.handler.js";
+import { sendSuccess } from "../utils/response.handler.js";
+import { NotFoundError } from "../errors/not.found.error.js";
+import { isMongoDuplicateError } from "../utils/db.errors.js";
+import { ConflictError } from "../errors/conflict.error.js";
+import type {
+  PaginatedVocabularyDTO,
+  VocabularyStatsDTO,
+} from "../types/vocabulary.dto.js";
+import {
+  toVocabularyDetailDTO,
+  toVocabularyListDTO,
+} from "../mappers/vocabulary.mapper.js";
 
-const getVocabularyEntries = async (req: Request, res: Response) => {
-  try {
+const getVocabularyEntries = asyncHandler(
+  async (req: Request, res: Response) => {
     const userId = req.user!.userId;
-    const queryParsed = findVocabularyQuerySchema.safeParse(req.query);
+    const query = findVocabularyQuerySchema.parse(req.query);
 
-    if (!queryParsed.success) {
-      return res.status(400).json({
-        message: "Invalid query parameters",
-        errors: queryParsed.error.flatten(),
-      });
-    }
+    const result = await vocabularyRepository.findEntries(userId, query);
 
-    const result = await vocabularyRepository.findEntries(
-      userId,
-      queryParsed.data,
+    const paginatedDTO: PaginatedVocabularyDTO = {
+      data: result.data.map(toVocabularyListDTO),
+      meta: result.meta,
+    };
+
+    return sendSuccess<PaginatedVocabularyDTO>(
+      res,
+      paginatedDTO,
+      "Vocabulary entries fetched successfully",
+      200,
     );
+  },
+);
 
-    return res.status(200).json(result);
-  } catch (error) {
-    console.error("Get vocabulary error:", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-const getVocabularyEntryById = async (req: Request, res: Response) => {
-  try {
+const getVocabularyEntryById = asyncHandler(
+  async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const { id } = req.params;
 
@@ -42,77 +51,78 @@ const getVocabularyEntryById = async (req: Request, res: Response) => {
     );
 
     if (!entry) {
-      return res.status(404).json({ message: "Vocabulary entry not found" });
+      throw new NotFoundError("Vocabulary entry not found");
     }
 
-    return res.status(200).json(entry);
-  } catch (error) {
-    console.error("Get vocabulary by id error:", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-};
+    return sendSuccess(
+      res,
+      toVocabularyDetailDTO(entry),
+      "Vocabulary entry fetched successfully",
+      200,
+    );
+  },
+);
 
-const createVocabularyEntry = async (req: Request, res: Response) => {
-  try {
+const createVocabularyEntry = asyncHandler(
+  async (req: Request, res: Response) => {
     const userId = req.user!.userId;
-    const parsed = createVocabularySchema.safeParse(req.body);
+    const parsed = createVocabularySchema.parse(req.body);
 
-    if (!parsed.success) {
-      return res.status(400).json({
-        message: "Invalid request body",
-        errors: parsed.error.flatten(),
-      });
+    try {
+      const entry = await vocabularyRepository.createEntry(userId, parsed);
+      return sendSuccess(
+        res,
+        toVocabularyDetailDTO(entry),
+        "Vocabulary entry created successfully",
+        201,
+      );
+    } catch (error) {
+      if (isMongoDuplicateError(error)) {
+        throw new ConflictError(
+          "Vocabulary entry with this word and language already exists",
+        );
+      }
+      throw error;
     }
+  },
+);
 
-    const entry = await vocabularyRepository.createEntry(userId, parsed.data);
-
-    return res.status(201).json(entry);
-  } catch (error) {
-    if (
-      typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      (error as { code: unknown }).code === 11000
-    ) {
-      return res.status(409).json({ message: "Word already exists" });
-    }
-    console.error("Create vocabulary error:", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-const updateVocabularyEntry = async (req: Request, res: Response) => {
-  try {
+const updateVocabularyEntry = asyncHandler(
+  async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const { id } = req.params;
-    const parsed = updateVocabularySchema.safeParse(req.body);
+    const updates = updateVocabularySchema.parse(req.body);
 
-    if (!parsed.success) {
-      return res.status(400).json({
-        message: "Invalid input",
-        errors: parsed.error.flatten(),
-      });
+    try {
+      const updated = await vocabularyRepository.updateEntry(
+        id as string,
+        userId,
+        updates,
+      );
+
+      if (!updated) {
+        throw new NotFoundError("Vocabulary entry not found");
+      }
+
+      return sendSuccess(
+        res,
+        toVocabularyDetailDTO(updated),
+        "Vocabulary entry updated successfully",
+        200,
+      );
+    } catch (error) {
+      if (isMongoDuplicateError(error)) {
+        throw new ConflictError(
+          "Another vocabulary entry with this word and language already exists",
+        );
+      }
+      throw error;
     }
+  },
+);
 
-    const updated = await vocabularyRepository.updateEntry(
-      id as string,
-      userId,
-      parsed.data,
-    );
-
-    if (!updated) {
-      return res.status(404).json({ message: "Vocabulary entry not found" });
-    }
-
-    return res.status(200).json(updated);
-  } catch (error) {
-    console.error("Update vocabulary error:", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-const deleteVocabularyEntry = async (req: Request, res: Response) => {
-  try {
+const deleteVocabularyEntry = asyncHandler(
+  async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const { id } = req.params;
 
@@ -122,28 +132,20 @@ const deleteVocabularyEntry = async (req: Request, res: Response) => {
     );
 
     if (!deleted) {
-      return res.status(404).json({ message: "Vocabulary entry not found" });
+      throw new NotFoundError("Vocabulary entry not found");
     }
 
-    return res.status(204).send();
-  } catch (error) {
-    console.error("Delete vocabulary error:", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-};
+    return sendSuccess(res, null, "Vocabulary entry deleted successfully", 204);
+  },
+);
 
-const vocabularyStats = async (req: Request, res: Response) => {
-  try {
-    const userId = req.user?.userId;
-    const stats: VocabularyStats =
-      await vocabularyRepository.getVocabularyStats(userId!);
+const vocabularyStats = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?.userId;
+  const stats: VocabularyStatsDTO =
+    await vocabularyRepository.getVocabularyStats(userId!);
 
-    return res.status(200).json(stats);
-  } catch (error) {
-    console.error("Get vocabulary stats error:", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-};
+  return sendSuccess(res, stats, "Vocabulary stats fetched successfully", 200);
+});
 
 export const vocabularyController = {
   getVocabularyEntries,

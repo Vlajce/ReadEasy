@@ -1,58 +1,72 @@
 import type { Request, Response } from "express";
-import { User } from "../models/user.model.js";
+import { asyncHandler } from "../utils/async.handler.js";
+import { userRepository } from "../repositories/user.repository.js";
+import { updateUserSchema } from "../validation/user.schema.js";
+import { sendSuccess } from "../utils/response.handler.js";
+import { NotFoundError } from "../errors/not.found.error.js";
+import { ConflictError } from "../errors/conflict.error.js";
+import { toUserDTO } from "../mappers/user.mapper.js";
+import { isMongoDuplicateError } from "../utils/db.errors.js";
 
-const getCurrentUser = async (req: Request, res: Response) => {
-  try {
-    if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+const getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const user = await userRepository.findById(userId);
 
-    const userId = req.user.userId;
-
-    const user = await User.findById(userId).select("-password");
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    return res.status(200).json({
-      id: user._id,
-      username: user.username,
-      email: user.email,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    });
-  } catch (error) {
-    console.error("Get current user error:", error);
-    return res.status(500).json({ message: "Internal server error" });
+  if (!user) {
+    throw new NotFoundError("User not found");
   }
-};
 
-const updateCurrentUser = async (req: Request, res: Response) => {
-  try {
-    const userId = req.user?.userId;
-    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+  return sendSuccess(res, toUserDTO(user), "User fetched successfully", 200);
+});
 
-    const { username } = req.body;
-    if (!username)
-      return res.status(400).json({ message: "username is required" });
+const updateCurrentUser = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
 
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { username },
-      { new: true, runValidators: true }
+  const updateData = updateUserSchema.parse(req.body);
+
+  if (updateData.email) {
+    const existingUser = await userRepository.findByEmail(updateData.email);
+    if (existingUser && existingUser._id.toString() !== userId) {
+      throw new ConflictError("User with this email already exists");
+    }
+  }
+
+  if (updateData.username) {
+    const existingUser = await userRepository.findByUsername(
+      updateData.username,
     );
-
-    if (!updatedUser)
-      return res.status(404).json({ message: "User not found" });
-
-    return res.status(200).json({
-      id: updatedUser._id,
-      username: updatedUser.username,
-      email: updatedUser.email,
-    });
-  } catch (error) {
-    console.error("Update current user error:", error);
-    res.status(500).json({ message: "Internal server error" });
+    if (existingUser && existingUser._id.toString() !== userId) {
+      throw new ConflictError("User with this username already exists");
+    }
   }
-};
+  try {
+    const updatedUser = await userRepository.update(userId, updateData);
 
-export const userController = {
-  getCurrentUser,
-  updateCurrentUser,
-};
+    if (!updatedUser) {
+      throw new NotFoundError("User not found");
+    }
+
+    return sendSuccess(
+      res,
+      toUserDTO(updatedUser),
+      "Profile updated successfully",
+      200,
+    );
+  } catch (error: unknown) {
+    if (isMongoDuplicateError(error)) {
+      const field = Object.keys(error.keyPattern)[0] || "unknown";
+
+      const messages: Record<string, string> = {
+        email: "User with this email already exists",
+        username: "User with this username already exists",
+      };
+
+      throw new ConflictError(
+        messages[field] || "User with this information already exists",
+      );
+    }
+    throw error;
+  }
+});
+
+export const userController = { getCurrentUser, updateCurrentUser };

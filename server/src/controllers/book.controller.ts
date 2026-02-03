@@ -6,292 +6,251 @@ import {
   updatePrivateBookSchema,
 } from "../validation/book.schema.js";
 import { bookRepository } from "../repositories/book.repository.js";
+import { asyncHandler } from "../utils/async.handler.js";
+import { toBookDetailDTO, toBookListDTO } from "../mappers/book.mapper.js";
+import { sendError, sendSuccess } from "../utils/response.handler.js";
+import type { PaginatedBooksDTO } from "../types/book.dto.js";
+import { NotFoundError } from "../errors/not.found.error.js";
+import { BadRequestError } from "../errors/bad.request.error.js";
+import { isMongoDuplicateError } from "../utils/db.errors.js";
+import { ConflictError } from "../errors/conflict.error.js";
+import { ErrorCodes } from "../utils/error.codes.js";
 
-// --- ERROR HELPERS ---
+const getPublicBooks = asyncHandler(async (req: Request, res: Response) => {
+  const query = findBooksQuerySchema.parse(req.query);
+  const result = await bookRepository.findPublicBooks(query);
 
-// Proverava da li je greška Mongo Duplicate Key Error (code 11000)
-const isDuplicateKeyError = (err: unknown): err is { code: number } => {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "code" in err &&
-    (err as { code: unknown }).code === 11000
+  const paginatedDTO: PaginatedBooksDTO = {
+    data: result.data.map(toBookListDTO),
+    meta: result.meta,
+  };
+
+  return sendSuccess<PaginatedBooksDTO>(
+    res,
+    paginatedDTO,
+    "Books retrieved successfully",
+    200,
   );
-};
+});
 
-// Proverava da li je greška naša custom greška (ima status i message)
-const isAppError = (
-  err: unknown,
-): err is { status: number; message: string } => {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "status" in err &&
-    typeof (err as { status: unknown }).status === "number"
-  );
-};
+const getPublicBookById = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const book = await bookRepository.findPublicBookById(id as string);
 
-// --- CONTROLLERS ---
-
-const getPublicBooks = async (req: Request, res: Response) => {
-  try {
-    const queryParsed = findBooksQuerySchema.safeParse(req.query);
-    if (!queryParsed.success) {
-      return res.status(400).json({
-        message: "Invalid query parameters",
-        errors: queryParsed.error.flatten(),
-      });
-    }
-    const result = await bookRepository.findPublicBooks(queryParsed.data);
-
-    return res.status(200).json(result);
-  } catch (error) {
-    console.error("Get books error:", error);
-    return res.status(500).json({ message: "Internal server error" });
+  if (!book) {
+    throw new NotFoundError("Book not found");
   }
-};
 
-const getPublicBookById = async (req: Request, res: Response) => {
-  try {
+  return sendSuccess(
+    res,
+    toBookDetailDTO(book),
+    "Book retrieved successfully",
+    200,
+  );
+});
+
+const getPublicBookContent = asyncHandler(
+  async (req: Request, res: Response) => {
     const { id } = req.params;
-    const book = await bookRepository.findPublicBookById(id as string);
+    const result = await bookRepository.findPublicBookContentById(id as string);
 
-    if (!book) {
-      return res.status(404).json({ message: "Book not found" });
+    if (!result) {
+      throw new NotFoundError("Book content not found");
     }
 
-    return res.status(200).json(book);
-  } catch (error) {
-    console.error("Get book error:", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-const getPublicBookContent = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { stream, size } = await bookRepository.findPublicBookContentById(
-      id as string,
-    );
+    const { stream, size } = result;
 
     res.type("text/plain; charset=utf-8");
     res.setHeader("Content-Length", String(size));
-
     stream.pipe(res);
 
-    stream.on("error", (err) => {
-      console.error("Stream error:", err);
+    stream.on("error", (error) => {
+      console.error("Stream error:", error);
       if (!res.headersSent) {
-        res.status(500).json({ message: "Could not read book content" });
+        return sendError(
+          res,
+          "Could not read book content",
+          ErrorCodes.SYS_INTERNAL_ERROR,
+          500,
+        );
       } else {
         res.end();
       }
     });
-  } catch (err: unknown) {
-    if (isAppError(err)) {
-      return res.status(err.status).json({ message: err.message });
-    }
-    console.error("Get book content error:", err);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-};
+  },
+);
 
-const uploadMyBook = async (req: Request, res: Response) => {
+const uploadMyBook = asyncHandler(async (req: Request, res: Response) => {
   const file = req.file;
 
   if (!file) {
-    return res.status(400).json({ message: "No file uploaded" });
+    throw new BadRequestError("No file uploaded");
   }
 
   const userId = req.user!.userId;
   const relativePath = path.join("private-books", userId, file.filename);
 
+  const metadata = uploadMetadataSchema.parse(req.body);
+
+  const wordCount = await bookRepository.countWordsInFile(relativePath);
+
   try {
-    // 1. Validacija Metadata Inputa
-    const metadataResult = uploadMetadataSchema.safeParse(req.body);
-
-    if (!metadataResult.success) {
-      await bookRepository.deleteFile(relativePath);
-      return res.status(400).json({
-        message: "Invalid metadata",
-        errors: metadataResult.error.flatten(),
-      });
-    }
-
-    const { title, author, language } = metadataResult.data;
-
-    // 2. Brojanje reči
-    const wordCount = await bookRepository.countWordsInFile(relativePath);
-
-    // 3. Kreiranje u bazi
     const book = await bookRepository.createPrivateBook({
-      title,
-      author,
-      language,
+      ...metadata,
       filepath: relativePath,
       wordCount,
       ownerId: userId,
     });
 
-    return res.status(201).json({
-      message: "Private book uploaded successfully",
-      book: {
-        id: book._id,
-        title: book.title,
-        author: book.author,
-        language: book.language,
-        wordCount: book.wordCount,
-        createdAt: book.createdAt,
-      },
-    });
-  } catch (error: unknown) {
-    // CLEANUP: Uvek brišemo fajl na grešku
-    await bookRepository.deleteFile(relativePath);
-
-    // Handling Duplikata preko Type Guard-a (nema više 'any')
-    if (isDuplicateKeyError(error)) {
-      return res.status(409).json({
-        message:
-          "Book with this title and language already exists in your library",
-      });
-    }
-
-    console.error("Upload private book error:", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-const getMyBooks = async (req: Request, res: Response) => {
-  try {
-    const userId = req.user!.userId;
-    const books = await bookRepository.findPrivateBooks(userId);
-
-    return res.status(200).json(books);
+    return sendSuccess(
+      res,
+      toBookDetailDTO(book),
+      "Private book uploaded successfully",
+      201,
+    );
   } catch (error) {
-    console.error("Get my books error:", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-const getMyBookById = async (req: Request, res: Response) => {
-  try {
-    const userId = req.user!.userId;
-    const { id } = req.params;
-
-    const book = await bookRepository.findPrivateBookById(id as string, userId);
-    if (!book) {
-      return res.status(404).json({ message: "Book not found" });
-    }
-    return res.status(200).json(book);
-  } catch (error) {
-    console.error("Get my book by id error:", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-const getMyBookContent = async (req: Request, res: Response) => {
-  try {
-    const userId = req.user!.userId;
-    const { id } = req.params;
-
-    const { stream, size } = await bookRepository.findPrivateBookContentById(
-      id as string,
-      userId,
-    );
-
-    res.type("text/plain; charset=utf-8");
-    res.setHeader("Content-Length", String(size));
-
-    stream.pipe(res);
-
-    stream.on("error", (err) => {
-      console.error("Stream error:", err);
-      if (!res.headersSent) {
-        res.status(500).json({ message: "Could not read book content" });
-      } else {
-        res.end();
-      }
+    await bookRepository.deleteFile(relativePath).catch((cleanupError) => {
+      console.error(
+        "Failed to cleanup uploaded file after error:",
+        cleanupError,
+      );
     });
-  } catch (err: unknown) {
-    if (isAppError(err)) {
-      return res.status(err.status).json({ message: err.message });
-    }
-    console.error("Get my book content error:", err);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-};
 
-const updateMyBookMetadata = async (req: Request, res: Response) => {
-  try {
+    if (isMongoDuplicateError(error)) {
+      throw new ConflictError(
+        "Book with this title and language already exists in your library",
+      );
+    }
+
+    throw error;
+  }
+});
+
+const getMyBooks = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const query = findBooksQuerySchema.parse(req.query);
+
+  const result = await bookRepository.findPrivateBooks(userId, query);
+
+  const paginatedDTO: PaginatedBooksDTO = {
+    data: result.data.map(toBookListDTO),
+    meta: result.meta,
+  };
+
+  return sendSuccess<PaginatedBooksDTO>(
+    res,
+    paginatedDTO,
+    "Private books retrieved successfully",
+    200,
+  );
+});
+
+const getMyBookById = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const { id } = req.params;
+
+  const book = await bookRepository.findPrivateBookById(id as string, userId);
+  if (!book) {
+    throw new NotFoundError("Book not found");
+  }
+
+  return sendSuccess(
+    res,
+    toBookDetailDTO(book),
+    "Book retrieved successfully",
+    200,
+  );
+});
+
+const getMyBookContent = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const { id } = req.params;
+
+  const result = await bookRepository.findPrivateBookContentById(
+    id as string,
+    userId,
+  );
+
+  if (!result) {
+    throw new NotFoundError("Book content not found");
+  }
+
+  const { stream, size } = result;
+
+  res.type("text/plain; charset=utf-8");
+  res.setHeader("Content-Length", String(size));
+  stream.pipe(res);
+
+  stream.on("error", (error) => {
+    console.error("Stream error:", error);
+    if (!res.headersSent) {
+      return sendError(
+        res,
+        "Could not read book content",
+        ErrorCodes.SYS_INTERNAL_ERROR,
+        500,
+      );
+    } else {
+      res.end();
+    }
+  });
+});
+
+const updateMyBookMetadata = asyncHandler(
+  async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const { id } = req.params;
 
-    const parsed = updatePrivateBookSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({
-        message: "Invalid update payload",
-        errors: parsed.error.flatten(),
-      });
-    }
-
-    const updates = parsed.data;
-    // ensure language lowered (zod transform already does it)
-
-    const updated = await bookRepository.updatePrivateBookMetadata(
-      id as string,
-      userId,
-      updates,
-    );
-
-    if (!updated) {
-      return res.status(404).json({ message: "Book not found" });
-    }
-
-    return res.status(200).json({ message: "Book updated", book: updated });
-  } catch (err: unknown) {
-    if (isDuplicateKeyError(err)) {
-      return res.status(409).json({
-        message:
-          "Another book with this title and language already exists in your library",
-      });
-    }
-    console.error("Update private book metadata error:", err);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-const deleteMyBook = async (req: Request, res: Response) => {
-  try {
-    const userId = req.user!.userId;
-    const { id } = req.params;
-
-    const deleted = await bookRepository.deletePrivateBook(
-      id as string,
-      userId,
-    );
-
-    if (!deleted) {
-      return res.status(404).json({ message: "Book not found" });
-    }
+    const updates = updatePrivateBookSchema.parse(req.body);
 
     try {
-      if (deleted.filepath) {
-        await bookRepository.deleteFile(deleted.filepath);
-      }
-    } catch (fsErr) {
-      console.error("File deletion failed after DB delete:", fsErr);
-      return res.status(200).json({
-        message: "Book deleted from database, but file cleanup failed",
-        cleanupFailed: true,
-      });
-    }
+      const updated = await bookRepository.updatePrivateBookMetadata(
+        id as string,
+        userId,
+        updates,
+      );
 
-    return res.status(200).json({ message: "Book deleted successfully" });
-  } catch (err) {
-    console.error("Delete private book error:", err);
-    return res.status(500).json({ message: "Internal server error" });
+      if (!updated) {
+        throw new NotFoundError("Book not found");
+      }
+
+      return sendSuccess(
+        res,
+        toBookDetailDTO(updated),
+        "Book updated successfully",
+        200,
+      );
+    } catch (error) {
+      if (isMongoDuplicateError(error)) {
+        throw new ConflictError(
+          "Another book with this title and language already exists in your library",
+        );
+      }
+      throw error;
+    }
+  },
+);
+
+const deleteMyBook = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const { id } = req.params;
+
+  const deleted = await bookRepository.deletePrivateBook(id as string, userId);
+
+  if (!deleted) {
+    throw new NotFoundError("Book not found");
   }
-};
+
+  try {
+    if (deleted.filepath) {
+      await bookRepository.deleteFile(deleted.filepath);
+    }
+  } catch (fsError) {
+    console.error("File deletion failed after DB delete:", fsError);
+  }
+
+  return sendSuccess(res, null, "Book deleted successfully", 200);
+});
 
 export const bookController = {
   getPublicBooks,
