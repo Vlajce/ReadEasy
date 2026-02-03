@@ -69,55 +69,38 @@ const vocabularySchema = new Schema<IVocabularyEntry>(
   { timestamps: true },
 );
 
-// =================================================
-// INDEKSI ZA OPTIMIZACIJU (PERFORMANSE)
-// =================================================
-
-// 1. UNIQUE (Integritet)
-// Sprečava duplikate reči
 vocabularySchema.index(
   { userId: 1, word: 1, language: 1 },
   { unique: true, name: "idx_unique_word" },
 );
 
-// 2. MAIN FEED (Samo paginacija)
-// Koristi se kad nema filtera
 vocabularySchema.index({ userId: 1, createdAt: -1 }, { name: "idx_feed" });
 
-// 3. FILTER PO STATUSU
-// Koristi se npr: ?status=learning
-vocabularySchema.index(
-  { userId: 1, status: 1, createdAt: -1 },
-  { name: "idx_status_feed" },
-);
-
-// 4. FILTER PO JEZIKU
-// Koristi se npr: ?language=en
-vocabularySchema.index(
-  { userId: 1, language: 1, createdAt: -1 },
-  { name: "idx_lang_feed" },
-);
-
-// 5. FILTER PO KNJIZI
-// Koristi se npr: ?bookId=123
 vocabularySchema.index(
   { userId: 1, bookId: 1, createdAt: -1 },
   { name: "idx_book_feed" },
 );
 
-// 6. KOMBINACIJA STATUS + JEZIK
-// Koristi se npr: ?status=learning&language=en
-// Bez ovog indeksa, baza bi koristila jedan od gornjih i filtrirala ostatak u memoriji.
 vocabularySchema.index(
   { userId: 1, status: 1, language: 1, createdAt: -1 },
   { name: "idx_status_lang_feed" },
 );
 
-// 7. FULL TEXT SEARCH
-// Za pretragu reči ili značenja
 vocabularySchema.index(
-  { word: "text", meaning: "text", context: "text", userId: 1 },
-  { name: "idx_text_search" },
+  { userId: 1, language: 1, createdAt: -1 },
+  { name: "idx_lang_feed" },
+);
+
+// Prefix search (brza pretraga po word)
+vocabularySchema.index({ word: 1, userId: 1 }, { name: "idx_user_word" });
+
+vocabularySchema.index(
+  { word: "text", context: "text" },
+  {
+    name: "idx_text_search",
+    weights: { word: 10, context: 1 },
+    default_language: "english",
+  },
 );
 
 export const VocabularyEntry = mongoose.model<IVocabularyEntry>(
