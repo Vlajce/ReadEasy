@@ -23,7 +23,7 @@ export const createVocabularySchema = z.object({
     .max(500)
     .transform((v) => v.trim().toLowerCase())
     .optional(),
-  bookId: z.string().regex(objectIdRegex).optional(),
+  bookId: z.string().regex(objectIdRegex),
   context: z.string().min(1).max(500).optional(),
   position: positionSchema.optional(),
   language: z

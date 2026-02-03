@@ -8,6 +8,7 @@ const findById = async (id: string): Promise<IUser | null> => {
 const findByEmail = async (email: string): Promise<IUser | null> => {
   return await User.findOne({ email }).select("-password").lean().exec();
 };
+
 const findByUsername = async (username: string): Promise<IUser | null> => {
   return await User.findOne({ username })
     .collation({ locale: "en", strength: 2 })

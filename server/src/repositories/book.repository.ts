@@ -31,7 +31,7 @@ const findPublicBooks = async (
     ];
   }
 
-  const sortField = query.sortBy || "wordCount";
+  const sortField = query.sortBy || "createdAt";
   const sortOrder = query.sortOrder === "asc" ? 1 : -1;
   const sort: Record<string, 1 | -1> = { [sortField]: sortOrder };
 

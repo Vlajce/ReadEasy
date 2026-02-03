@@ -17,7 +17,6 @@ export const isAuthenticated = asyncHandler(
       throw new UnauthorizedError("Invalid authorization format");
     }
 
-    // Bez try-catch! Ako pukne, leti direktno u error.middleware
     const payload = verifyAccessToken(token);
 
     req.user = { userId: payload.userId };

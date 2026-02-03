@@ -8,12 +8,12 @@ export interface VocabularyListDTO {
 
 export interface VocabularyDetailDTO {
   id: string;
+  bookId: string;
   word: string;
   language: string;
   status: "new" | "learning" | "mastered";
   meaning?: string | null;
   context?: string | null;
-  bookId?: string | null;
   position?: { startOffset: number; endOffset: number } | null;
   createdAt: string;
   updatedAt: string;

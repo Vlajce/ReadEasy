@@ -3,11 +3,11 @@ import mongoose, { Schema } from "mongoose";
 export interface IVocabularyEntry {
   _id: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
+  bookId: mongoose.Types.ObjectId;
   word: string;
   language: string;
   status: "new" | "learning" | "mastered";
   meaning?: string | null;
-  bookId?: mongoose.Types.ObjectId | null;
   context?: string | null;
   position?: { startOffset: number; endOffset: number } | null;
   createdAt: Date;
@@ -28,7 +28,11 @@ const vocabularySchema = new Schema<IVocabularyEntry>(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      // Index uklonjen jer je prvi deo svih compound indeksa
+    },
+    bookId: {
+      type: Schema.Types.ObjectId,
+      ref: "Book",
+      required: true,
     },
     word: {
       type: String,
@@ -54,11 +58,6 @@ const vocabularySchema = new Schema<IVocabularyEntry>(
       maxlength: 500,
       lowercase: true,
       trim: true,
-    },
-    bookId: {
-      type: Schema.Types.ObjectId,
-      ref: "Book",
-      default: null,
     },
     context: { type: String, default: null, maxlength: 500, trim: true },
     position: {
@@ -106,7 +105,7 @@ vocabularySchema.index(
   { name: "idx_book_feed" },
 );
 
-// 6. KOMBINACIJA STATUS + JEZIK (Ovo si tražio!)
+// 6. KOMBINACIJA STATUS + JEZIK
 // Koristi se npr: ?status=learning&language=en
 // Bez ovog indeksa, baza bi koristila jedan od gornjih i filtrirala ostatak u memoriji.
 vocabularySchema.index(

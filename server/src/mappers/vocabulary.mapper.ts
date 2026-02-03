@@ -4,11 +4,11 @@ type VocabularyMapperInput = Pick<
   IVocabularyEntry,
   | "_id"
   | "userId"
+  | "bookId"
   | "word"
   | "language"
   | "status"
   | "meaning"
-  | "bookId"
   | "context"
   | "position"
   | "createdAt"
@@ -25,12 +25,12 @@ export const toVocabularyListDTO = (entry: VocabularyMapperInput) => ({
 
 export const toVocabularyDetailDTO = (entry: VocabularyMapperInput) => ({
   id: entry._id.toString(),
+  bookId: entry.bookId.toString(),
   word: entry.word,
   language: entry.language,
   status: entry.status,
   meaning: entry.meaning ?? null,
   context: entry.context ?? null,
-  bookId: entry.bookId ? entry.bookId.toString() : null,
   position: entry.position ?? null,
   createdAt: entry.createdAt.toISOString(),
   updatedAt: entry.updatedAt.toISOString(),

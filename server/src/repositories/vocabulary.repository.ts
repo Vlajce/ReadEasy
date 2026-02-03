@@ -20,7 +20,7 @@ const createEntry = async (
     userId,
     word: data.word,
     meaning: data.meaning ?? null,
-    bookId: data.bookId ? data.bookId : null,
+    bookId: data.bookId,
     context: data.context ?? null,
     position: data.position ?? null,
     language: data.language,
