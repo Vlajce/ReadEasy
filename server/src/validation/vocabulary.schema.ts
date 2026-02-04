@@ -14,17 +14,17 @@ export const positionSchema = z
 export const createVocabularySchema = z.object({
   word: z
     .string()
-    .min(1)
+    .min(2)
     .max(100)
     .transform((val) => val.trim().toLowerCase()),
   meaning: z
     .string()
-    .min(1)
+    .min(2)
     .max(500)
     .transform((v) => v.trim().toLowerCase())
     .optional(),
   bookId: z.string().regex(objectIdRegex),
-  context: z.string().min(1).max(500).optional(),
+  context: z.string().min(2).max(500).optional(),
   position: positionSchema.optional(),
   language: z
     .string()
@@ -39,11 +39,11 @@ export const createVocabularySchema = z.object({
 export const updateVocabularySchema = z.object({
   meaning: z
     .string()
-    .min(1)
+    .min(2)
     .max(500)
     .transform((v) => v.trim().toLowerCase())
     .optional(),
-  context: z.string().min(1).max(500).optional(),
+  context: z.string().min(2).max(500).optional(),
   status: z.enum(["new", "learning", "mastered"]).optional(),
   language: z
     .string()

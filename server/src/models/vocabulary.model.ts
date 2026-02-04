@@ -7,6 +7,10 @@ export interface IVocabularyEntry {
   word: string;
   language: string;
   status: "new" | "learning" | "mastered";
+  bookSnapshot: {
+    title: string;
+    author: string;
+  };
   meaning?: string | null;
   context?: string | null;
   position?: { startOffset: number; endOffset: number } | null;
@@ -18,6 +22,22 @@ const positionSchema = new Schema(
   {
     startOffset: { type: Number, min: 0 },
     endOffset: { type: Number, min: 0 },
+  },
+  { _id: false },
+);
+
+const bookSnapshotSchema = new Schema(
+  {
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    author: {
+      type: String,
+      required: true,
+      trim: true,
+    },
   },
   { _id: false },
 );
@@ -51,6 +71,10 @@ const vocabularySchema = new Schema<IVocabularyEntry>(
       type: String,
       enum: ["new", "learning", "mastered"],
       default: "new",
+    },
+    bookSnapshot: {
+      type: bookSnapshotSchema,
+      required: true,
     },
     meaning: {
       type: String,
