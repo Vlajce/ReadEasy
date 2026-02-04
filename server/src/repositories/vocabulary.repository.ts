@@ -9,6 +9,8 @@ import type {
   FindVocabularyQueryInput,
 } from "../validation/vocabulary.schema.js";
 import type { VocabularyStatsDTO } from "../types/vocabulary.dto.js";
+import { Book } from "../models/book.model.js";
+import { NotFoundError } from "../errors/not.found.error.js";
 
 const EXCLUDE_FIELDS = "-__v";
 
@@ -16,15 +18,28 @@ const createEntry = async (
   userId: string,
   data: CreateVocabularyInput,
 ): Promise<IVocabularyEntry> => {
+  const book = await Book.findById(data.bookId)
+    .select("title author")
+    .lean()
+    .exec();
+
+  if (!book) {
+    throw new NotFoundError("Book not found");
+  }
+
   return VocabularyEntry.create({
     userId,
-    word: data.word,
-    meaning: data.meaning ?? null,
     bookId: data.bookId,
-    context: data.context ?? null,
-    position: data.position ?? null,
+    bookSnapshot: {
+      title: book.title,
+      author: book.author,
+    },
+    word: data.word,
     language: data.language,
     status: data.status,
+    meaning: data.meaning ?? null,
+    context: data.context ?? null,
+    position: data.position ?? null,
   });
 };
 
@@ -51,10 +66,10 @@ const findEntries = async (
     const searchTerm = query.search;
 
     if (searchTerm!.length <= 4) {
-      const escaped = query.search!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const escaped = searchTerm!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       filter.word = { $regex: `^${escaped}` };
     } else {
-      filter.$text = { $search: query.search };
+      filter.$text = { $search: searchTerm };
       useTextSearch = true;
     }
   }

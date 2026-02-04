@@ -4,8 +4,8 @@ const objectIdRegex = /^[a-fA-F0-9]{24}$/;
 
 export const bookSchema = z
   .object({
-    title: z.string().min(1).max(255).trim(),
-    author: z.string().min(1).max(100).trim(),
+    title: z.string().min(2).max(255).trim(),
+    author: z.string().min(2).max(100).trim(),
     language: z
       .string()
       .trim()
@@ -88,8 +88,8 @@ export const findBooksQuerySchema = z.object({
 });
 
 export const uploadMetadataSchema = z.object({
-  title: z.string().min(1).max(255).trim(),
-  author: z.string().min(1).max(100).trim(),
+  title: z.string().min(2).max(255).trim(),
+  author: z.string().min(2).max(100).trim(),
   language: z
     .string()
     .trim()

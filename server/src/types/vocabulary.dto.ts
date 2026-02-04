@@ -4,6 +4,10 @@ export interface VocabularyListDTO {
   language: string;
   status: "new" | "learning" | "mastered";
   meaning?: string | null;
+  bookSnapshot: {
+    title: string;
+    author: string;
+  };
 }
 
 export interface VocabularyDetailDTO {
@@ -15,6 +19,10 @@ export interface VocabularyDetailDTO {
   meaning?: string | null;
   context?: string | null;
   position?: { startOffset: number; endOffset: number } | null;
+  bookSnapshot: {
+    title: string;
+    author: string;
+  };
   createdAt: string;
   updatedAt: string;
 }

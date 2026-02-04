@@ -28,7 +28,7 @@ const getPublicBooks = asyncHandler(async (req: Request, res: Response) => {
   return sendSuccess<PaginatedBooksDTO>(
     res,
     paginatedDTO,
-    "Books retrieved successfully",
+    "Public books retrieved successfully",
     200,
   );
 });
