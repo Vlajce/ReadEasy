@@ -23,14 +23,12 @@ export interface IBook {
 
 const bookSchema = new Schema<IBook>(
   {
-    title: { type: String, required: true, trim: true, index: true },
-    author: { type: String, required: true, trim: true, index: true },
-    language: { type: String, required: true, trim: true, index: true },
+    title: { type: String, required: true, trim: true },
+    author: { type: String, required: true, trim: true },
+    language: { type: String, required: true, trim: true },
     description: { type: String, maxlength: 2000 },
 
-    //default jer ako knjiga nemaa subjects, aggregation nece pucati
-    //nema null problema na frontu
-    subjects: { type: [String], default: [], index: true },
+    subjects: { type: [String], default: [] },
 
     filepath: { type: String, required: true, trim: true, unique: true },
     coverImagePath: { type: String, trim: true },
@@ -40,7 +38,6 @@ const bookSchema = new Schema<IBook>(
       type: String,
       enum: ["public", "private"],
       default: "public",
-      index: true,
     },
 
     ownerId: {
@@ -49,29 +46,50 @@ const bookSchema = new Schema<IBook>(
       required: function (): boolean {
         return this.visibility === "private";
       },
-      index: true,
     },
   },
   { timestamps: true },
 );
 
 // Full text search index
+// dummy_language_field je tu da bi se izbegao problem sa stemmerom za srpski, koji mongo ne podrzava.
+// Bez ovog, mongo bi ignorisao text index za knjige na srpskom, sto znaci da pretraga po naslovu i
+// autoru ne bi radila kako treba. Ovim pristupom, text index ce se koristiti bez stemmera, ali ce
+// pretraga i dalje raditi za srpski jezik.
 bookSchema.index(
+  { title: "text", author: "text" },
   {
-    title: "text",
-    author: "text",
+    name: "idx_book_text_search",
+    language_override: "dummy_language_field",
+    weights: {
+      title: 5,
+      author: 2,
+    },
   },
-  { language_override: "dummy_language_field" },
 );
-// mora jer mongo ne podrzava stemmer za srpski
 
-// Compound index for private library queries, performance index
-bookSchema.index({ ownerId: 1, visibility: 1 });
+bookSchema.index(
+  { visibility: 1, language: 1, createdAt: -1 },
+  { name: "idx_book_public_feed" },
+);
 
-//Sprečava duplikate (isti naslov i jezik) za istog korisnika, SAMO ako je privatna knjiga.
+bookSchema.index(
+  { ownerId: 1, createdAt: -1 },
+  { name: "idx_book_private_feed" },
+);
+
+bookSchema.index(
+  { filepath: 1 },
+  { name: "idx_book_filepath_unique", unique: true },
+);
+
 bookSchema.index(
   { ownerId: 1, title: 1, language: 1 },
-  { unique: true, partialFilterExpression: { visibility: "private" } },
+  {
+    name: "idx_book_private_duplicate_check",
+    unique: true,
+    partialFilterExpression: { visibility: "private" },
+  },
 );
 
 export const Book = mongoose.model<IBook>("Book", bookSchema);

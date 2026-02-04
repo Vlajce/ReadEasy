@@ -3,8 +3,10 @@ import type { BookInput, FindBooksQuery } from "../validation/book.schema.js";
 import { storageService } from "../services/storage.service.js";
 import { NotFoundError } from "../errors/not.found.error.js";
 
-const EXCLUDE_FIELDS = "-filepath -__v";
-
+const EXCLUDE_FIELDS = {
+  filepath: 0,
+  __v: 0,
+};
 type BookVisibility = "public" | "private";
 
 interface BookFilter {
@@ -19,8 +21,8 @@ const findBooks = async (
   data: IBook[];
   meta: { page: number; limit: number; totalItems: number; totalPages: number };
 }> => {
-  const pageNum = Math.max(1, Number(query.page) || 1);
-  const limitNum = Math.min(100, Math.max(1, Number(query.limit) || 20));
+  const page = Math.max(1, Number(query.page) || 1);
+  const limit = Math.min(100, Math.max(1, Number(query.limit) || 20));
 
   const mongoFilter: Record<string, unknown> = {
     visibility: filter.visibility,
@@ -31,32 +33,39 @@ const findBooks = async (
   }
 
   if (query.language) {
-    mongoFilter.language = query.language.toLowerCase();
+    mongoFilter.language = query.language;
   }
 
   if (query.search) {
-    const escaped = String(query.search)
-      .slice(0, 100)
-      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    mongoFilter.$or = [
-      { title: new RegExp(escaped, "i") },
-      { author: new RegExp(escaped, "i") },
-    ];
+    mongoFilter.$text = { $search: query.search };
   }
 
-  const sortField = query.sortBy || "createdAt";
-  const sortOrder = query.sortOrder === "asc" ? 1 : -1;
-  const sort: Record<string, 1 | -1> = { [sortField]: sortOrder };
+  const useTextSearch = Boolean(mongoFilter.$text);
+
+  let dataQuery = Book.find(mongoFilter).select(EXCLUDE_FIELDS);
+
+  if (useTextSearch) {
+    dataQuery = dataQuery
+      .select({ ...EXCLUDE_FIELDS, score: { $meta: "textScore" } })
+      .sort({
+        score: { $meta: "textScore" },
+        createdAt: -1,
+      });
+  } else {
+    const sortField = query.sortBy || "createdAt";
+    const sortOrder = query.sortOrder === "asc" ? 1 : -1;
+    dataQuery = dataQuery.sort({
+      [sortField]: sortOrder,
+    });
+  }
 
   const totalItems = await Book.countDocuments(mongoFilter).exec();
-  const totalPages = Math.ceil(totalItems / limitNum);
-  const effectivePage = totalPages > 0 ? Math.min(pageNum, totalPages) : 1;
+  const totalPages = Math.ceil(totalItems / limit);
+  const effectivePage = totalPages > 0 ? Math.min(page, totalPages) : 1;
 
-  const data = await Book.find(mongoFilter)
-    .select(EXCLUDE_FIELDS)
-    .sort(sort)
-    .skip((effectivePage - 1) * limitNum)
-    .limit(limitNum)
+  const data = await dataQuery
+    .skip((effectivePage - 1) * limit)
+    .limit(limit)
     .lean()
     .exec();
 
@@ -64,7 +73,7 @@ const findBooks = async (
     data,
     meta: {
       page: effectivePage,
-      limit: limitNum,
+      limit,
       totalItems,
       totalPages,
     },
