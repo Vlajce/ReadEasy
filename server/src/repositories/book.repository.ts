@@ -5,11 +5,15 @@ import { NotFoundError } from "../errors/not.found.error.js";
 
 const EXCLUDE_FIELDS = "-filepath -__v";
 
-const insertManyBooks = async (books: BookInput[]): Promise<IBook[]> => {
-  return await Book.insertMany(books, { ordered: false });
-};
+type BookVisibility = "public" | "private";
 
-const findPublicBooks = async (
+interface BookFilter {
+  visibility: BookVisibility;
+  ownerId?: string;
+}
+
+const findBooks = async (
+  filter: BookFilter,
   query: FindBooksQuery,
 ): Promise<{
   data: IBook[];
@@ -18,14 +22,23 @@ const findPublicBooks = async (
   const pageNum = Math.max(1, Number(query.page) || 1);
   const limitNum = Math.min(100, Math.max(1, Number(query.limit) || 20));
 
-  const filter: Record<string, unknown> = { visibility: "public" };
-  if (query.language) filter.language = query.language.toLowerCase();
+  const mongoFilter: Record<string, unknown> = {
+    visibility: filter.visibility,
+  };
+
+  if (filter.ownerId) {
+    mongoFilter.ownerId = filter.ownerId;
+  }
+
+  if (query.language) {
+    mongoFilter.language = query.language.toLowerCase();
+  }
 
   if (query.search) {
     const escaped = String(query.search)
       .slice(0, 100)
       .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    filter.$or = [
+    mongoFilter.$or = [
       { title: new RegExp(escaped, "i") },
       { author: new RegExp(escaped, "i") },
     ];
@@ -35,11 +48,11 @@ const findPublicBooks = async (
   const sortOrder = query.sortOrder === "asc" ? 1 : -1;
   const sort: Record<string, 1 | -1> = { [sortField]: sortOrder };
 
-  const totalItems = await Book.countDocuments(filter).exec();
+  const totalItems = await Book.countDocuments(mongoFilter).exec();
   const totalPages = Math.ceil(totalItems / limitNum);
   const effectivePage = totalPages > 0 ? Math.min(pageNum, totalPages) : 1;
 
-  const data = await Book.find(filter)
+  const data = await Book.find(mongoFilter)
     .select(EXCLUDE_FIELDS)
     .sort(sort)
     .skip((effectivePage - 1) * limitNum)
@@ -58,17 +71,36 @@ const findPublicBooks = async (
   };
 };
 
-const findPublicBookById = async (id: string): Promise<IBook | null> => {
-  return await Book.findOne({ _id: id, visibility: "public" })
-    .select(EXCLUDE_FIELDS)
-    .lean()
-    .exec();
+const findBookById = async (
+  id: string,
+  filter: BookFilter,
+): Promise<IBook | null> => {
+  const mongoFilter: Record<string, unknown> = {
+    _id: id,
+    visibility: filter.visibility,
+  };
+
+  if (filter.ownerId) {
+    mongoFilter.ownerId = filter.ownerId;
+  }
+
+  return await Book.findOne(mongoFilter).select(EXCLUDE_FIELDS).lean().exec();
 };
 
-const findPublicBookContentById = async (
+const findBookContentById = async (
   id: string,
+  filter: BookFilter,
 ): Promise<{ stream: NodeJS.ReadableStream; size: number } | null> => {
-  const book = await Book.findOne({ _id: id, visibility: "public" }).exec();
+  const mongoFilter: Record<string, unknown> = {
+    _id: id,
+    visibility: filter.visibility,
+  };
+
+  if (filter.ownerId) {
+    mongoFilter.ownerId = filter.ownerId;
+  }
+
+  const book = await Book.findOne(mongoFilter).lean().exec();
   if (!book || !book.filepath) return null;
 
   try {
@@ -79,83 +111,27 @@ const findPublicBookContentById = async (
   }
 };
 
-const findPrivateBooks = async (
-  userId: string,
-  query: FindBooksQuery,
-): Promise<{
-  data: IBook[];
-  meta: { page: number; limit: number; totalItems: number; totalPages: number };
-}> => {
-  const pageNum = Math.max(1, Number(query.page) || 1);
-  const limitNum = Math.min(100, Math.max(1, Number(query.limit) || 20));
-
-  const filter: Record<string, unknown> = {
-    visibility: "private",
-    ownerId: userId,
-  };
-
-  const sortField = query.sortBy || "createdAt";
-  const sortOrder = query.sortOrder === "asc" ? 1 : -1;
-  const sort: Record<string, 1 | -1> = { [sortField]: sortOrder };
-
-  const totalItems = await Book.countDocuments(filter).exec();
-  const totalPages = Math.ceil(totalItems / limitNum);
-  const effectivePage = totalPages > 0 ? Math.min(pageNum, totalPages) : 1;
-
-  const data = await Book.find(filter)
-    .select(EXCLUDE_FIELDS)
-    .sort(sort)
-    .skip((effectivePage - 1) * limitNum)
-    .limit(limitNum)
-    .lean()
-    .exec();
-
-  return {
-    data,
-    meta: {
-      page: effectivePage,
-      limit: limitNum,
-      totalItems,
-      totalPages,
-    },
-  };
+const insertManyBooks = async (books: BookInput[]): Promise<IBook[]> => {
+  return await Book.insertMany(books, { ordered: false });
 };
 
-const findPrivateBookById = async (
-  id: string,
-  userId: string,
-): Promise<IBook | null> => {
-  return await Book.findOne({
-    _id: id,
-    visibility: "private",
-    ownerId: userId,
-  })
-    .select(EXCLUDE_FIELDS)
-    .lean()
-    .exec();
-};
+const findPublicBooks = (query: FindBooksQuery) =>
+  findBooks({ visibility: "public" }, query);
 
-const findPrivateBookContentById = async (
-  id: string,
-  userId: string,
-): Promise<{ stream: NodeJS.ReadableStream; size: number } | null> => {
-  const book = await Book.findOne({
-    _id: id,
-    visibility: "private",
-    ownerId: userId,
-  }).exec();
+const findPrivateBooks = (userId: string, query: FindBooksQuery) =>
+  findBooks({ visibility: "private", ownerId: userId }, query);
 
-  if (!book || !book.filepath) {
-    return null;
-  }
+const findPublicBookById = (id: string) =>
+  findBookById(id, { visibility: "public" });
 
-  try {
-    return await storageService.getFileStream(book.filepath);
-  } catch (err: unknown) {
-    if (err instanceof NotFoundError) return null;
-    throw err;
-  }
-};
+const findPrivateBookById = (id: string, userId: string) =>
+  findBookById(id, { visibility: "private", ownerId: userId });
+
+const findPublicBookContentById = (id: string) =>
+  findBookContentById(id, { visibility: "public" });
+
+const findPrivateBookContentById = (id: string, userId: string) =>
+  findBookContentById(id, { visibility: "private", ownerId: userId });
 
 const createPrivateBook = async (
   data: Pick<
@@ -211,8 +187,8 @@ const deleteFile = async (filePath: string): Promise<void> => {
 
 export const bookRepository = {
   insertManyBooks,
-  findPublicBookById,
   findPublicBooks,
+  findPublicBookById,
   findPublicBookContentById,
   findPrivateBooks,
   findPrivateBookById,

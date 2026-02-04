@@ -8,6 +8,7 @@ type VocabularyMapperInput = Pick<
   | "word"
   | "language"
   | "status"
+  | "bookSnapshot"
   | "meaning"
   | "context"
   | "position"
@@ -20,6 +21,7 @@ export const toVocabularyListDTO = (entry: VocabularyMapperInput) => ({
   word: entry.word,
   language: entry.language,
   status: entry.status,
+  bookSnapshot: entry.bookSnapshot,
   meaning: entry.meaning ?? null,
 });
 
@@ -29,6 +31,7 @@ export const toVocabularyDetailDTO = (entry: VocabularyMapperInput) => ({
   word: entry.word,
   language: entry.language,
   status: entry.status,
+  bookSnapshot: entry.bookSnapshot,
   meaning: entry.meaning ?? null,
   context: entry.context ?? null,
   position: entry.position ?? null,
