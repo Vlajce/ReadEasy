@@ -6,6 +6,7 @@ import { bookRoutes } from "./routes/book.routes.js";
 import { vocabularyRoutes } from "./routes/vocabulary.routes.js";
 import { corsConfig } from "./config/cors.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
+import { globalLimiter } from "./middlewares/rateLimit.middleware.js";
 
 const app = express();
 
@@ -13,6 +14,7 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(corsConfig);
+app.use(globalLimiter);
 
 // Routes
 app.use("/auth", authRoutes);

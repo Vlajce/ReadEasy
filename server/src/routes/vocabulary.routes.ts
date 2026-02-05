@@ -2,6 +2,8 @@ import { Router } from "express";
 import { vocabularyController } from "../controllers/vocabulary.controller.js";
 import { isAuthenticated } from "../middlewares/auth.middleware.js";
 import { validateObjectId } from "../middlewares/validateObjectId.middleware.js";
+import config from "../config/config.js";
+import { rateLimiter } from "../middlewares/rateLimit.middleware.js";
 
 const {
   getVocabularyEntries,
@@ -12,15 +14,30 @@ const {
   vocabularyStats,
 } = vocabularyController;
 
+const strictLimiter = rateLimiter(
+  config.rateLimit.strict.maxRequests,
+  config.rateLimit.strict.windowMs,
+  "strict",
+);
+
 const router = Router();
 
 router.use(isAuthenticated);
 
 router.get("/", getVocabularyEntries);
-router.post("/", createVocabularyEntry);
+router.post("/", strictLimiter, createVocabularyEntry);
 router.get("/stats", vocabularyStats);
 router.get("/:id", validateObjectId("id"), getVocabularyEntryById);
-router.put("/:id", validateObjectId("id"), updateVocabularyEntry);
-router.delete("/:id", validateObjectId("id"), deleteVocabularyEntry);
-
+router.put(
+  "/:id",
+  strictLimiter,
+  validateObjectId("id"),
+  updateVocabularyEntry,
+);
+router.delete(
+  "/:id",
+  strictLimiter,
+  validateObjectId("id"),
+  deleteVocabularyEntry,
+);
 export const vocabularyRoutes = router;

@@ -34,6 +34,25 @@ const config = {
       expiresIn: process.env.JWT_REFRESH_EXPIRES_IN as string,
     },
   },
+  rateLimit: {
+    enabled: process.env.RATE_LIMIT_ENABLED === "true",
+    global: {
+      windowMs: 1 * 60 * 1000, // 1 minute
+      maxRequests: parseInt(process.env.RATE_LIMIT_GLOBAL_MAX || "120", 10),
+    },
+    login: {
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      maxRequests: parseInt(process.env.RATE_LIMIT_AUTH_MAX || "5", 10),
+    },
+    register: {
+      windowMs: 60 * 60 * 1000, // 1 hour
+      maxRequests: parseInt(process.env.RATE_LIMIT_REGISTER_MAX || "3", 10),
+    },
+    strict: {
+      windowMs: 1 * 60 * 1000, // 1 minute
+      maxRequests: parseInt(process.env.RATE_LIMIT_STRICT_MAX || "50", 10),
+    },
+  },
 };
 
 export default config;

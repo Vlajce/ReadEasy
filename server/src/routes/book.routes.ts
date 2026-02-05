@@ -6,6 +6,8 @@ import {
   uploadPrivateBook,
   handleUploadError,
 } from "../middlewares/multer.middleware.js";
+import config from "../config/config.js";
+import { rateLimiter } from "../middlewares/rateLimit.middleware.js";
 
 const {
   getPublicBooks,
@@ -19,6 +21,12 @@ const {
   deleteMyBook,
 } = bookController;
 
+const strictLimiter = rateLimiter(
+  config.rateLimit.strict.maxRequests,
+  config.rateLimit.strict.windowMs,
+  "strict",
+);
+
 const router = Router();
 
 router.use(isAuthenticated);
@@ -28,10 +36,16 @@ router.get("/", getPublicBooks);
 router.get("/my", getMyBooks);
 router.get("/my/:id/content", validateObjectId("id"), getMyBookContent);
 router.get("/my/:id", validateObjectId("id"), getMyBookById);
-router.patch("/my/:id", validateObjectId("id"), updateMyBookMetadata);
-router.delete("/my/:id", validateObjectId("id"), deleteMyBook);
+router.patch(
+  "/my/:id",
+  strictLimiter,
+  validateObjectId("id"),
+  updateMyBookMetadata,
+);
+router.delete("/my/:id", strictLimiter, validateObjectId("id"), deleteMyBook);
 router.post(
   "/private",
+  strictLimiter,
   uploadPrivateBook.single("book"),
   handleUploadError,
   uploadMyBook,
