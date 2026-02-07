@@ -52,24 +52,51 @@ const register = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const login = asyncHandler(async (req: Request, res: Response) => {
+  const cookies = req.cookies;
   const { email, password } = loginSchema.parse(req.body);
 
-  const user = await User.findOne({ email }).select("+password");
-  if (!user) {
+  const foundUser = await User.findOne({ email })
+    .select("+password +refreshToken")
+    .exec();
+  if (!foundUser) {
     throw new UnauthorizedError("Invalid credentials");
   }
 
-  const isMatch = await bcrypt.compare(password, user.password);
+  const isMatch = await bcrypt.compare(password, foundUser.password);
   if (!isMatch) {
     throw new UnauthorizedError("Invalid credentials");
   }
 
-  const accessToken = signAccessToken(user._id.toString());
-  const refreshToken = signRefreshToken(user._id.toString());
+  const accessToken = signAccessToken(foundUser._id.toString());
+  const newRefreshToken = signRefreshToken(foundUser._id.toString());
 
-  res.cookie("refreshToken", refreshToken, {
+  let newRefreshTokenArray = !cookies.refreshToken
+    ? foundUser.refreshToken
+    : foundUser.refreshToken.filter((rt) => rt !== cookies.refreshToken);
+
+  if (cookies.refreshToken) {
+    const refreshToken = cookies.refreshToken as string;
+
+    const foundToken = await User.findOne({ refreshToken }).exec();
+    if (!foundToken) {
+      newRefreshTokenArray = [];
+    }
+
+    res.cookie("refreshToken", newRefreshToken, {
+      httpOnly: true,
+      secure: config.env === "production" ? true : false,
+      sameSite: config.env === "production" ? "none" : "lax",
+      path: "/auth/refresh",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+  }
+
+  foundUser.refreshToken = [...newRefreshTokenArray, newRefreshToken];
+  await foundUser.save();
+
+  res.cookie("refreshToken", newRefreshToken, {
     httpOnly: true,
-    secure: config.env === "production",
+    secure: config.env === "production" ? true : false,
     sameSite: config.env === "production" ? "none" : "lax",
     path: "/auth/refresh",
     maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -79,7 +106,7 @@ const login = asyncHandler(async (req: Request, res: Response) => {
     res,
     {
       accessToken,
-      user: toUserDTO(user),
+      user: toUserDTO(foundUser),
     },
     "Login successful",
     200,
@@ -87,32 +114,118 @@ const login = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const refresh = asyncHandler(async (req: Request, res: Response) => {
-  const token = req.cookies?.refreshToken;
-  if (!token) {
-    throw new UnauthorizedError("No refresh token");
+  const cookies = req.cookies;
+  if (!cookies?.refreshToken) {
+    throw new UnauthorizedError("No refresh token provided");
   }
 
-  const payload = verifyRefreshToken(token);
-  if (!payload || !payload.userId) {
-    throw new UnauthorizedError("Invalid refresh token");
-  }
+  const refreshToken = cookies.refreshToken as string;
 
-  const accessToken = signAccessToken(payload.userId);
-  const newRefreshToken = signRefreshToken(payload.userId);
-
-  res.cookie("refreshToken", newRefreshToken, {
-    httpOnly: true,
-    secure: config.env === "production",
+  // clear cookie immediately; will set a new one if refresh succeeds
+  res.clearCookie("refreshToken", {
     sameSite: config.env === "production" ? "none" : "lax",
+    secure: config.env === "production" ? true : false,
+    httpOnly: true,
     path: "/auth/refresh",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
-  return sendSuccess(res, { accessToken }, "Token refreshed successfully", 200);
+  const foundUser = await User.findOne({ refreshToken })
+    .select("+refreshToken")
+    .exec();
+
+  // Token not in DB => possible reuse
+  if (!foundUser) {
+    try {
+      const decoded = verifyRefreshToken(refreshToken);
+      // revoke all tokens for that userId
+      const hackedUser = await User.findById(decoded.userId)
+        .select("+refreshToken")
+        .exec();
+      if (hackedUser) {
+        hackedUser.refreshToken = [];
+        await hackedUser.save();
+      }
+    } catch {
+      console.log("⚠️ Invalid or expired refresh token during reuse detection");
+    }
+    throw new UnauthorizedError("Invalid or expired refresh token");
+  }
+
+  // remove current token for rotation
+  const newRefreshTokenArray = foundUser.refreshToken.filter(
+    (rt) => rt !== refreshToken,
+  );
+
+  try {
+    const decoded = verifyRefreshToken(refreshToken);
+
+    if (decoded.userId !== foundUser._id.toString()) {
+      // mismatch -> remove token and forbid
+      foundUser.refreshToken = [...newRefreshTokenArray];
+      await foundUser.save();
+      throw new UnauthorizedError("Invalid or expired refresh token");
+    }
+
+    // valid -> issue new tokens
+    const accessToken = signAccessToken(decoded.userId);
+    const newRefreshToken = signRefreshToken(decoded.userId);
+
+    foundUser.refreshToken = [...newRefreshTokenArray, newRefreshToken];
+    await foundUser.save();
+
+    res.cookie("refreshToken", newRefreshToken, {
+      httpOnly: true,
+      secure: config.env === "production" ? true : false,
+      sameSite: config.env === "production" ? "none" : "lax",
+      path: "/auth/refresh",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return sendSuccess(
+      res,
+      { accessToken },
+      "Token refreshed successfully",
+      200,
+    );
+  } catch {
+    // expired/invalid -> remove token from DB and forbid
+    foundUser.refreshToken = [...newRefreshTokenArray];
+    await foundUser.save();
+    throw new UnauthorizedError("Invalid or expired refresh token");
+  }
 });
 
-const logout = asyncHandler(async (_req: Request, res: Response) => {
-  res.clearCookie("refreshToken", { path: "/auth/refresh" });
+const logout = asyncHandler(async (req: Request, res: Response) => {
+  const cookies = req.cookies;
+  if (!cookies?.refreshToken) {
+    return sendSuccess(res, null, "Logged out successfully", 204);
+  }
+  const refreshToken = cookies.refreshToken;
+
+  // Is refresh token in DB?
+  const foundUser = await User.findOne({ refreshToken }).exec();
+  if (!foundUser) {
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: config.env === "production" ? true : false,
+      sameSite: config.env === "production" ? "none" : "lax",
+      path: "/auth/refresh",
+    });
+    return sendSuccess(res, null, "Logged out successfully", 204);
+  }
+
+  // Delete refresh token in DB
+  foundUser.refreshToken = foundUser.refreshToken.filter(
+    (rt) => rt !== refreshToken,
+  );
+  await foundUser.save();
+
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: config.env === "production" ? true : false,
+    sameSite: config.env === "production" ? "none" : "lax",
+    path: "/auth/refresh",
+  });
   return sendSuccess(res, null, "Logged out successfully", 200);
 });
 

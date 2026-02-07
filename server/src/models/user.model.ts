@@ -5,6 +5,7 @@ export interface IUser {
   username: string;
   email: string;
   password: string;
+  refreshToken: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,6 +29,11 @@ const userSchema = new Schema<IUser>(
       type: String,
       required: true,
       select: false,
+    },
+    refreshToken: {
+      type: [String],
+      select: false,
+      default: [],
     },
   },
   { timestamps: true },
