@@ -13,7 +13,7 @@ import { sendSuccess } from "../utils/response.handler.js";
 import { UnauthorizedError } from "../errors/unauthorized.error.js";
 import { asyncHandler } from "../utils/async.handler.js";
 import { toUserDTO } from "../mappers/user.mapper.js";
-import type { AuthResponseDTO, UserDTO } from "../types/user.dto.js";
+import type { UserDTO } from "../types/user.dto.js";
 import { isMongoDuplicateError } from "../utils/db.errors.js";
 
 const register = asyncHandler(async (req: Request, res: Response) => {
@@ -81,54 +81,30 @@ const login = asyncHandler(async (req: Request, res: Response) => {
     if (!foundToken) {
       newRefreshTokenArray = [];
     }
-
-    res.cookie("refreshToken", newRefreshToken, {
-      httpOnly: true,
-      secure: config.env === "production" ? true : false,
-      sameSite: config.env === "production" ? "none" : "lax",
-      path: "/auth/refresh",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
   }
 
   foundUser.refreshToken = [...newRefreshTokenArray, newRefreshToken];
   await foundUser.save();
 
   res.cookie("refreshToken", newRefreshToken, {
-    httpOnly: true,
-<<<<<<< HEAD
+    httpOnly: false,
     secure: config.env === "production" ? true : false,
     sameSite: config.env === "production" ? "none" : "lax",
-    path: "/auth/refresh",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+  res.cookie("accessToken", accessToken, {
+    httpOnly: false,
+    secure: config.env === "production" ? true : false,
+    sameSite: config.env === "production" ? "none" : "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
-  return sendSuccess<AuthResponseDTO>(
+  return sendSuccess<UserDTO>(
     res,
-    {
-      accessToken,
-      user: toUserDTO(foundUser),
-    },
+    toUserDTO(foundUser),
     "Login successful",
     200,
   );
-=======
-    secure: false,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 24 * 60 * 60 * 1000,
-  });
-
-  res.cookie("accessToken", accessToken, {
-    httpOnly: true,
-    secure: false,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 24 * 60 * 60 * 1000,
-  });
-
-  return sendSuccess<UserDTO>(res, toUserDTO(user), "Login successful", 200);
->>>>>>> 24933f4 (Initalize frontend with authentication logic and login and register page, move access token to cookie, and adjust /me endpoint to always send successfull response.)
 });
 
 const refresh = asyncHandler(async (req: Request, res: Response) => {
@@ -139,14 +115,9 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
 
   const refreshToken = cookies.refreshToken as string;
 
-<<<<<<< HEAD
   // clear cookie immediately; will set a new one if refresh succeeds
-  res.clearCookie("refreshToken", {
-    sameSite: config.env === "production" ? "none" : "lax",
-    secure: config.env === "production" ? true : false,
-    httpOnly: true,
-    path: "/auth/refresh",
-  });
+  res.clearCookie("refreshToken");
+  res.clearCookie("accessToken");
 
   const foundUser = await User.findOne({ refreshToken })
     .select("+refreshToken")
@@ -193,19 +164,20 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
     await foundUser.save();
 
     res.cookie("refreshToken", newRefreshToken, {
-      httpOnly: true,
+      httpOnly: false,
       secure: config.env === "production" ? true : false,
       sameSite: config.env === "production" ? "none" : "lax",
-      path: "/auth/refresh",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    return sendSuccess(
-      res,
-      { accessToken },
-      "Token refreshed successfully",
-      200,
-    );
+    res.cookie("accessToken", accessToken, {
+      httpOnly: false,
+      secure: config.env === "production" ? true : false,
+      sameSite: config.env === "production" ? "none" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return sendSuccess(res, null, "Token refreshed successfully", 200);
   } catch {
     // expired/invalid -> remove token from DB and forbid
     foundUser.refreshToken = [...newRefreshTokenArray];
@@ -221,57 +193,18 @@ const logout = asyncHandler(async (req: Request, res: Response) => {
   }
   const refreshToken = cookies.refreshToken;
 
+  res.clearCookie("refreshToken");
+  res.clearCookie("accessToken");
   // Is refresh token in DB?
   const foundUser = await User.findOne({ refreshToken }).exec();
-  if (!foundUser) {
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      secure: config.env === "production" ? true : false,
-      sameSite: config.env === "production" ? "none" : "lax",
-      path: "/auth/refresh",
-    });
-    return sendSuccess(res, null, "Logged out successfully", 204);
+  if (foundUser) {
+    // Delete refresh token in DB
+    foundUser.refreshToken = foundUser.refreshToken.filter(
+      (rt) => rt !== refreshToken,
+    );
+    await foundUser.save();
   }
 
-  // Delete refresh token in DB
-  foundUser.refreshToken = foundUser.refreshToken.filter(
-    (rt) => rt !== refreshToken,
-  );
-  await foundUser.save();
-
-  res.clearCookie("refreshToken", {
-    httpOnly: true,
-    secure: config.env === "production" ? true : false,
-    sameSite: config.env === "production" ? "none" : "lax",
-    path: "/auth/refresh",
-  });
-=======
-  const accessToken = signAccessToken(payload.userId);
-  const newRefreshToken = signRefreshToken(payload.userId);
-
-  res.cookie("refreshToken", newRefreshToken, {
-    httpOnly: true,
-    secure: false,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 24 * 60 * 60 * 1000,
-  });
-
-  res.cookie("accessToken", accessToken, {
-    httpOnly: true,
-    secure: false,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 24 * 60 * 60 * 1000,
-  });
-
-  return sendSuccess(res, null, "Token refreshed successfully", 200);
-});
-
-const logout = asyncHandler(async (_req: Request, res: Response) => {
-  res.clearCookie("refreshToken", { path: "/" });
-  res.clearCookie("accessToken", { path: "/" });
->>>>>>> 24933f4 (Initalize frontend with authentication logic and login and register page, move access token to cookie, and adjust /me endpoint to always send successfull response.)
   return sendSuccess(res, null, "Logged out successfully", 200);
 });
 
