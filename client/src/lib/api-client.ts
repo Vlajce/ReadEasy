@@ -7,13 +7,13 @@ const REFRESH_ENDPOINT = config.refreshEndpoint;
 
 class ApiClient {
   private baseUrl: string;
-  private refreshUrl: string;
+  private refreshEndpoint: string;
   private isRefreshing = false;
   private refreshPromise: Promise<null> | null = null;
 
   constructor(baseUrl: string, refreshEndpoint: string) {
     this.baseUrl = baseUrl;
-    this.refreshUrl = baseUrl + refreshEndpoint;
+    this.refreshEndpoint = refreshEndpoint;
   }
 
   private async handleTokenRefresh(): Promise<null> {
@@ -23,7 +23,7 @@ class ApiClient {
     }
 
     this.isRefreshing = true;
-    this.refreshPromise = this.get<null>(this.refreshUrl);
+    this.refreshPromise = this.post<null>(this.refreshEndpoint);
 
     try {
       return await this.refreshPromise;
@@ -49,7 +49,7 @@ class ApiClient {
         if (
           res.status === 401 &&
           tryRefresh &&
-          !endpoint.includes(this.refreshUrl)
+          !endpoint.includes(this.refreshEndpoint)
         ) {
           await this.handleTokenRefresh();
           return this.request<T>(endpoint, options, false);

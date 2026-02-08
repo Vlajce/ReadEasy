@@ -20,6 +20,7 @@ const queryClient = new QueryClient({
       staleTime: config.cacheStaleTimeSeconds * 1000,
       retry: (failureCount, error) => {
         if (error instanceof ApiError && error.statusCode === 401) return false;
+
         return failureCount < 3;
       },
     },
