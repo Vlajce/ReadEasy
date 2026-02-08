@@ -13,7 +13,7 @@ import { sendSuccess } from "../utils/response.handler.js";
 import { UnauthorizedError } from "../errors/unauthorized.error.js";
 import { asyncHandler } from "../utils/async.handler.js";
 import { toUserDTO } from "../mappers/user.mapper.js";
-import type { AuthResponseDTO } from "../types/user.dto.js";
+import type { AuthResponseDTO, UserDTO } from "../types/user.dto.js";
 import { isMongoDuplicateError } from "../utils/db.errors.js";
 
 const register = asyncHandler(async (req: Request, res: Response) => {
@@ -69,21 +69,21 @@ const login = asyncHandler(async (req: Request, res: Response) => {
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: config.env === "production",
-    sameSite: config.env === "production" ? "none" : "lax",
-    path: "/auth/refresh",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    secure: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 24 * 60 * 60 * 1000,
   });
 
-  return sendSuccess<AuthResponseDTO>(
-    res,
-    {
-      accessToken,
-      user: toUserDTO(user),
-    },
-    "Login successful",
-    200,
-  );
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+
+  return sendSuccess<UserDTO>(res, toUserDTO(user), "Login successful", 200);
 });
 
 const refresh = asyncHandler(async (req: Request, res: Response) => {
@@ -102,17 +102,26 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
 
   res.cookie("refreshToken", newRefreshToken, {
     httpOnly: true,
-    secure: config.env === "production",
-    sameSite: config.env === "production" ? "none" : "lax",
-    path: "/auth/refresh",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    secure: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 24 * 60 * 60 * 1000,
   });
 
-  return sendSuccess(res, { accessToken }, "Token refreshed successfully", 200);
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+
+  return sendSuccess(res, null, "Token refreshed successfully", 200);
 });
 
 const logout = asyncHandler(async (_req: Request, res: Response) => {
-  res.clearCookie("refreshToken", { path: "/auth/refresh" });
+  res.clearCookie("refreshToken", { path: "/" });
+  res.clearCookie("accessToken", { path: "/" });
   return sendSuccess(res, null, "Logged out successfully", 200);
 });
 
