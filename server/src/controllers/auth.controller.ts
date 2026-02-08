@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { CookieOptions, Request, Response } from "express";
 import bcrypt from "bcrypt";
 import { User } from "../models/user.model.js";
 import { registerSchema, loginSchema } from "../validation/auth.schema.js";
@@ -15,6 +15,13 @@ import { asyncHandler } from "../utils/async.handler.js";
 import { toUserDTO } from "../mappers/user.mapper.js";
 import type { UserDTO } from "../types/user.dto.js";
 import { isMongoDuplicateError } from "../utils/db.errors.js";
+
+const cookieOptions: CookieOptions = {
+  httpOnly: true,
+  secure: config.env === "production" ? true : false,
+  sameSite: config.env === "production" ? "none" : "lax",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
 
 const register = asyncHandler(async (req: Request, res: Response) => {
   const { username, email, password } = registerSchema.parse(req.body);
@@ -86,18 +93,8 @@ const login = asyncHandler(async (req: Request, res: Response) => {
   foundUser.refreshToken = [...newRefreshTokenArray, newRefreshToken];
   await foundUser.save();
 
-  res.cookie("refreshToken", newRefreshToken, {
-    httpOnly: false,
-    secure: config.env === "production" ? true : false,
-    sameSite: config.env === "production" ? "none" : "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
-  res.cookie("accessToken", accessToken, {
-    httpOnly: false,
-    secure: config.env === "production" ? true : false,
-    sameSite: config.env === "production" ? "none" : "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  res.cookie("refreshToken", newRefreshToken, cookieOptions);
+  res.cookie("accessToken", accessToken, cookieOptions);
 
   return sendSuccess<UserDTO>(
     res,
@@ -116,8 +113,8 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
   const refreshToken = cookies.refreshToken as string;
 
   // clear cookie immediately; will set a new one if refresh succeeds
-  res.clearCookie("refreshToken");
-  res.clearCookie("accessToken");
+  res.clearCookie("refreshToken", cookieOptions);
+  res.clearCookie("accessToken", cookieOptions);
 
   const foundUser = await User.findOne({ refreshToken })
     .select("+refreshToken")
@@ -163,19 +160,8 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
     foundUser.refreshToken = [...newRefreshTokenArray, newRefreshToken];
     await foundUser.save();
 
-    res.cookie("refreshToken", newRefreshToken, {
-      httpOnly: false,
-      secure: config.env === "production" ? true : false,
-      sameSite: config.env === "production" ? "none" : "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    res.cookie("accessToken", accessToken, {
-      httpOnly: false,
-      secure: config.env === "production" ? true : false,
-      sameSite: config.env === "production" ? "none" : "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("refreshToken", newRefreshToken, cookieOptions);
+    res.cookie("accessToken", accessToken, cookieOptions);
 
     return sendSuccess(res, null, "Token refreshed successfully", 200);
   } catch {
@@ -193,8 +179,8 @@ const logout = asyncHandler(async (req: Request, res: Response) => {
   }
   const refreshToken = cookies.refreshToken;
 
-  res.clearCookie("refreshToken");
-  res.clearCookie("accessToken");
+  res.clearCookie("refreshToken", cookieOptions);
+  res.clearCookie("accessToken", cookieOptions);
   // Is refresh token in DB?
   const foundUser = await User.findOne({ refreshToken }).exec();
   if (foundUser) {
