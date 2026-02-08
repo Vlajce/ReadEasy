@@ -14,9 +14,10 @@ const strictLimiter = rateLimiter(
 
 const router = Router();
 
+router.get("/me", getCurrentUser);
+
 router.use(isAuthenticated);
 
-router.get("/me", getCurrentUser);
 router.put("/me", strictLimiter, updateCurrentUser);
 
 export const userRoutes = router;

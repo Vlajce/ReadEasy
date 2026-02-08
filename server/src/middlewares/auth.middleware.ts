@@ -5,19 +5,13 @@ import { asyncHandler } from "../utils/async.handler.js";
 
 export const isAuthenticated = asyncHandler(
   async (req: Request, _res: Response, next: NextFunction) => {
-    const authHeader = req.headers.authorization;
+    const accessToken = req.cookies.accessToken;
 
-    if (!authHeader) {
-      throw new UnauthorizedError("Missing Authorization header");
+    if (!accessToken) {
+      throw new UnauthorizedError("Missing access token");
     }
 
-    const [type, token] = authHeader.trim().split(/\s+/);
-
-    if (type?.toLowerCase() !== "bearer" || !token) {
-      throw new UnauthorizedError("Invalid authorization format");
-    }
-
-    const payload = verifyAccessToken(token);
+    const payload = verifyAccessToken(accessToken);
 
     req.user = { userId: payload.userId };
     next();

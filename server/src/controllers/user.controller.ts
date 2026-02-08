@@ -7,16 +7,24 @@ import { NotFoundError } from "../errors/not.found.error.js";
 import { ConflictError } from "../errors/conflict.error.js";
 import { toUserDTO } from "../mappers/user.mapper.js";
 import { isMongoDuplicateError } from "../utils/db.errors.js";
+import { verifyAccessToken } from "../utils/jwt.js";
 
 const getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user!.userId;
-  const user = await userRepository.findById(userId);
+  const accessToken = req.cookies.accessToken;
 
-  if (!user) {
-    throw new NotFoundError("User not found");
+  if (!accessToken) {
+    return sendSuccess(res, null, "No user authenticated", 200);
   }
 
-  return sendSuccess(res, toUserDTO(user), "User fetched successfully", 200);
+  const payload = verifyAccessToken(accessToken);
+
+  const user = await userRepository.findById(payload.userId);
+
+  if (!user) {
+    return sendSuccess(res, null, "No user authenticated", 200);
+  }
+
+  return sendSuccess(res, toUserDTO(user), "User retrieved successfully", 200);
 });
 
 const updateCurrentUser = asyncHandler(async (req: Request, res: Response) => {

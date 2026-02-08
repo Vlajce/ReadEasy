@@ -13,7 +13,7 @@ import { sendSuccess } from "../utils/response.handler.js";
 import { UnauthorizedError } from "../errors/unauthorized.error.js";
 import { asyncHandler } from "../utils/async.handler.js";
 import { toUserDTO } from "../mappers/user.mapper.js";
-import type { AuthResponseDTO } from "../types/user.dto.js";
+import type { AuthResponseDTO, UserDTO } from "../types/user.dto.js";
 import { isMongoDuplicateError } from "../utils/db.errors.js";
 
 const register = asyncHandler(async (req: Request, res: Response) => {
@@ -96,6 +96,7 @@ const login = asyncHandler(async (req: Request, res: Response) => {
 
   res.cookie("refreshToken", newRefreshToken, {
     httpOnly: true,
+<<<<<<< HEAD
     secure: config.env === "production" ? true : false,
     sameSite: config.env === "production" ? "none" : "lax",
     path: "/auth/refresh",
@@ -111,6 +112,23 @@ const login = asyncHandler(async (req: Request, res: Response) => {
     "Login successful",
     200,
   );
+=======
+    secure: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+
+  return sendSuccess<UserDTO>(res, toUserDTO(user), "Login successful", 200);
+>>>>>>> 24933f4 (Initalize frontend with authentication logic and login and register page, move access token to cookie, and adjust /me endpoint to always send successfull response.)
 });
 
 const refresh = asyncHandler(async (req: Request, res: Response) => {
@@ -121,6 +139,7 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
 
   const refreshToken = cookies.refreshToken as string;
 
+<<<<<<< HEAD
   // clear cookie immediately; will set a new one if refresh succeeds
   res.clearCookie("refreshToken", {
     sameSite: config.env === "production" ? "none" : "lax",
@@ -226,6 +245,33 @@ const logout = asyncHandler(async (req: Request, res: Response) => {
     sameSite: config.env === "production" ? "none" : "lax",
     path: "/auth/refresh",
   });
+=======
+  const accessToken = signAccessToken(payload.userId);
+  const newRefreshToken = signRefreshToken(payload.userId);
+
+  res.cookie("refreshToken", newRefreshToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+
+  return sendSuccess(res, null, "Token refreshed successfully", 200);
+});
+
+const logout = asyncHandler(async (_req: Request, res: Response) => {
+  res.clearCookie("refreshToken", { path: "/" });
+  res.clearCookie("accessToken", { path: "/" });
+>>>>>>> 24933f4 (Initalize frontend with authentication logic and login and register page, move access token to cookie, and adjust /me endpoint to always send successfull response.)
   return sendSuccess(res, null, "Logged out successfully", 200);
 });
 
