@@ -15,8 +15,9 @@ import { asyncHandler } from "../utils/async.handler.js";
 import { toUserDTO } from "../mappers/user.mapper.js";
 import type { UserDTO } from "../types/user.dto.js";
 import { isMongoDuplicateError } from "../utils/db.errors.js";
+import { BadRequestError } from "../errors/bad.request.error.js";
 
-const cookieOptions: CookieOptions = {
+const COOKIE_OPTIONS: CookieOptions = {
   httpOnly: true,
   secure: config.env === "production" ? true : false,
   sameSite: config.env === "production" ? "none" : "lax",
@@ -66,12 +67,12 @@ const login = asyncHandler(async (req: Request, res: Response) => {
     .select("+password +refreshToken")
     .exec();
   if (!foundUser) {
-    throw new UnauthorizedError("Invalid credentials");
+    throw new BadRequestError("Invalid email or password");
   }
 
   const isMatch = await bcrypt.compare(password, foundUser.password);
   if (!isMatch) {
-    throw new UnauthorizedError("Invalid credentials");
+    throw new BadRequestError("Invalid email or password");
   }
 
   const accessToken = signAccessToken(foundUser._id.toString());
@@ -93,8 +94,8 @@ const login = asyncHandler(async (req: Request, res: Response) => {
   foundUser.refreshToken = [...newRefreshTokenArray, newRefreshToken];
   await foundUser.save();
 
-  res.cookie("refreshToken", newRefreshToken, cookieOptions);
-  res.cookie("accessToken", accessToken, cookieOptions);
+  res.cookie("refreshToken", newRefreshToken, COOKIE_OPTIONS);
+  res.cookie("accessToken", accessToken, COOKIE_OPTIONS);
 
   return sendSuccess<UserDTO>(
     res,
@@ -113,8 +114,8 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
   const refreshToken = cookies.refreshToken as string;
 
   // clear cookie immediately; will set a new one if refresh succeeds
-  res.clearCookie("refreshToken", cookieOptions);
-  res.clearCookie("accessToken", cookieOptions);
+  res.clearCookie("refreshToken", COOKIE_OPTIONS);
+  res.clearCookie("accessToken", COOKIE_OPTIONS);
 
   const foundUser = await User.findOne({ refreshToken })
     .select("+refreshToken")
@@ -160,8 +161,8 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
     foundUser.refreshToken = [...newRefreshTokenArray, newRefreshToken];
     await foundUser.save();
 
-    res.cookie("refreshToken", newRefreshToken, cookieOptions);
-    res.cookie("accessToken", accessToken, cookieOptions);
+    res.cookie("refreshToken", newRefreshToken, COOKIE_OPTIONS);
+    res.cookie("accessToken", accessToken, COOKIE_OPTIONS);
 
     return sendSuccess(res, null, "Token refreshed successfully", 200);
   } catch {
@@ -179,8 +180,8 @@ const logout = asyncHandler(async (req: Request, res: Response) => {
   }
   const refreshToken = cookies.refreshToken;
 
-  res.clearCookie("refreshToken", cookieOptions);
-  res.clearCookie("accessToken", cookieOptions);
+  res.clearCookie("refreshToken", COOKIE_OPTIONS);
+  res.clearCookie("accessToken", COOKIE_OPTIONS);
   // Is refresh token in DB?
   const foundUser = await User.findOne({ refreshToken }).exec();
   if (foundUser) {

@@ -5,8 +5,3 @@ export interface UserDTO {
   createdAt: string;
   updatedAt: string;
 }
-
-export interface AuthResponseDTO {
-  user: UserDTO;
-  accessToken: string;
-}
