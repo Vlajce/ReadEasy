@@ -2,7 +2,7 @@ import { apiClient } from "@/lib/api-client";
 import { getFormattedDate } from "@/lib/utils";
 import { getCurrentUserQueryOptions } from "@/query-options/get-current-user-query-options";
 import type { LoginInput } from "@/schemas/user";
-import type { User } from "@/types/user.dto";
+import type { User } from "@/types/user";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -22,7 +22,7 @@ export function useLogin() {
         description: getFormattedDate() + " 📆",
       });
 
-      navigate({ to: "/", replace: true });
+      navigate({ to: "/explore", replace: true });
     },
   });
 }

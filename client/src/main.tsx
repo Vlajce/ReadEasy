@@ -1,6 +1,7 @@
 import ReactDOM from "react-dom/client";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen.ts";
@@ -93,6 +94,7 @@ if (!rootElement.innerHTML) {
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
       <Toaster expand={true} position="top-right" />
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>,
   );
 }

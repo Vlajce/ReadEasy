@@ -1,4 +1,4 @@
-export interface BookListDTO {
+export interface Book {
   id: string;
   title: string;
   author: string;
@@ -6,13 +6,13 @@ export interface BookListDTO {
   wordCount?: number;
 }
 
-export interface BookDetailDTO extends BookListDTO {
+export interface BookDetail extends Book {
   description?: string;
   subjects: string[];
 }
 
-export interface PaginatedBooksDTO {
-  data: BookListDTO[];
+export interface PaginatedBooks {
+  data: Book[];
   meta: {
     page: number;
     limit: number;

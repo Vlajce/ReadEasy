@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as PublicRouteRouteImport } from './routes/_public/route'
 import { Route as ProtectedRouteRouteImport } from './routes/_protected/route'
 import { Route as PublicIndexRouteImport } from './routes/_public/index'
-import { Route as ProtectedHomeRouteImport } from './routes/_protected/home'
+import { Route as ProtectedVocabularyRouteImport } from './routes/_protected/vocabulary'
+import { Route as ProtectedLibraryRouteImport } from './routes/_protected/library'
+import { Route as ProtectedExploreRouteImport } from './routes/_protected/explore'
 import { Route as PublicAuthRouteRouteImport } from './routes/_public/_auth/route'
 import { Route as PublicAuthRegisterRouteImport } from './routes/_public/_auth/register'
 import { Route as PublicAuthLoginRouteImport } from './routes/_public/_auth/login'
@@ -30,9 +32,19 @@ const PublicIndexRoute = PublicIndexRouteImport.update({
   path: '/',
   getParentRoute: () => PublicRouteRoute,
 } as any)
-const ProtectedHomeRoute = ProtectedHomeRouteImport.update({
-  id: '/home',
-  path: '/home',
+const ProtectedVocabularyRoute = ProtectedVocabularyRouteImport.update({
+  id: '/vocabulary',
+  path: '/vocabulary',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedLibraryRoute = ProtectedLibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedExploreRoute = ProtectedExploreRouteImport.update({
+  id: '/explore',
+  path: '/explore',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
 const PublicAuthRouteRoute = PublicAuthRouteRouteImport.update({
@@ -52,13 +64,17 @@ const PublicAuthLoginRoute = PublicAuthLoginRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
-  '/home': typeof ProtectedHomeRoute
+  '/explore': typeof ProtectedExploreRoute
+  '/library': typeof ProtectedLibraryRoute
+  '/vocabulary': typeof ProtectedVocabularyRoute
   '/login': typeof PublicAuthLoginRoute
   '/register': typeof PublicAuthRegisterRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
-  '/home': typeof ProtectedHomeRoute
+  '/explore': typeof ProtectedExploreRoute
+  '/library': typeof ProtectedLibraryRoute
+  '/vocabulary': typeof ProtectedVocabularyRoute
   '/login': typeof PublicAuthLoginRoute
   '/register': typeof PublicAuthRegisterRoute
 }
@@ -67,22 +83,32 @@ export interface FileRoutesById {
   '/_protected': typeof ProtectedRouteRouteWithChildren
   '/_public': typeof PublicRouteRouteWithChildren
   '/_public/_auth': typeof PublicAuthRouteRouteWithChildren
-  '/_protected/home': typeof ProtectedHomeRoute
+  '/_protected/explore': typeof ProtectedExploreRoute
+  '/_protected/library': typeof ProtectedLibraryRoute
+  '/_protected/vocabulary': typeof ProtectedVocabularyRoute
   '/_public/': typeof PublicIndexRoute
   '/_public/_auth/login': typeof PublicAuthLoginRoute
   '/_public/_auth/register': typeof PublicAuthRegisterRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/home' | '/login' | '/register'
+  fullPaths:
+    | '/'
+    | '/explore'
+    | '/library'
+    | '/vocabulary'
+    | '/login'
+    | '/register'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/home' | '/login' | '/register'
+  to: '/' | '/explore' | '/library' | '/vocabulary' | '/login' | '/register'
   id:
     | '__root__'
     | '/_protected'
     | '/_public'
     | '/_public/_auth'
-    | '/_protected/home'
+    | '/_protected/explore'
+    | '/_protected/library'
+    | '/_protected/vocabulary'
     | '/_public/'
     | '/_public/_auth/login'
     | '/_public/_auth/register'
@@ -116,11 +142,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicIndexRouteImport
       parentRoute: typeof PublicRouteRoute
     }
-    '/_protected/home': {
-      id: '/_protected/home'
-      path: '/home'
-      fullPath: '/home'
-      preLoaderRoute: typeof ProtectedHomeRouteImport
+    '/_protected/vocabulary': {
+      id: '/_protected/vocabulary'
+      path: '/vocabulary'
+      fullPath: '/vocabulary'
+      preLoaderRoute: typeof ProtectedVocabularyRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/library': {
+      id: '/_protected/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof ProtectedLibraryRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/explore': {
+      id: '/_protected/explore'
+      path: '/explore'
+      fullPath: '/explore'
+      preLoaderRoute: typeof ProtectedExploreRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_public/_auth': {
@@ -148,11 +188,15 @@ declare module '@tanstack/react-router' {
 }
 
 interface ProtectedRouteRouteChildren {
-  ProtectedHomeRoute: typeof ProtectedHomeRoute
+  ProtectedExploreRoute: typeof ProtectedExploreRoute
+  ProtectedLibraryRoute: typeof ProtectedLibraryRoute
+  ProtectedVocabularyRoute: typeof ProtectedVocabularyRoute
 }
 
 const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
-  ProtectedHomeRoute: ProtectedHomeRoute,
+  ProtectedExploreRoute: ProtectedExploreRoute,
+  ProtectedLibraryRoute: ProtectedLibraryRoute,
+  ProtectedVocabularyRoute: ProtectedVocabularyRoute,
 }
 
 const ProtectedRouteRouteWithChildren = ProtectedRouteRoute._addFileChildren(

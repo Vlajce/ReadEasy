@@ -20,7 +20,8 @@
     "hooks": "@/hooks",
     "schemas": "@/schemas",
     "types": "@/types",
-    "query-options": "@/query-options"
+    "query-options": "@/query-options",
+    "mutations": "@/mutations"
   },
   "menuColor": "default",
   "menuAccent": "subtle",

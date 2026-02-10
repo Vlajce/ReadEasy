@@ -1,5 +1,5 @@
 import { apiClient } from "@/lib/api-client";
-import type { User } from "@/types/user.dto";
+import type { User } from "@/types/user";
 import { queryOptions } from "@tanstack/react-query";
 
 export function getCurrentUserQueryOptions() {

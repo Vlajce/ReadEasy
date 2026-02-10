@@ -1,4 +1,4 @@
-import type { User } from "@/types/user.dto";
+import type { User } from "@/types/user";
 
 type Auth = {
   isAuthenticated: true;
