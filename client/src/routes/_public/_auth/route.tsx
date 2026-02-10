@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
-import { ChefHat } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import image from "@/assets/images/books.jpg";
 import { Image } from "@/components/ui/image";
 
@@ -17,9 +17,9 @@ function RouteComponent() {
             className="flex items-center gap-2 font-semibold text-primary 2xl:text-lg"
           >
             <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
-              <ChefHat className="size-4" />
+              <BookOpen className="size-4" />
             </div>
-            <span className="mt-0.5">NeoChef</span>
+            <span className="mt-0.5">ReadEasy</span>
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-center">
