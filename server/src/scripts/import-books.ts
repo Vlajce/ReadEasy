@@ -73,6 +73,14 @@ const getTxtUrl = (formats: Record<string, string>): string | null => {
   return null;
 };
 
+// Find URL for cover image (image/jpeg format)
+const getCoverImageUrl = (formats: Record<string, string>): string | null => {
+  for (const [key, url] of Object.entries(formats)) {
+    if (/^image\/jpeg/i.test(key)) return url;
+  }
+  return null;
+};
+
 const loadLog = async (): Promise<ImportLog> => {
   try {
     const raw = await fs.readFile(LOG_FILE, "utf-8");
@@ -131,15 +139,15 @@ const importBook = async (id: string): Promise<ImportResult> => {
     if (!txtRes.ok)
       throw new Error(`Failed to download TXT (status ${txtRes.status})`);
 
+    const coverImageUrl = getCoverImageUrl(data.formats);
+
     const rawText = await txtRes.text();
     const cleanText = cleanGutenbergText(rawText);
     const wordCount = countWords(cleanText);
 
     const fileName = `${crypto.randomUUID()}.txt`;
     const localPath = path.join(STORAGE_DIR, fileName);
-
     await fs.writeFile(localPath, cleanText);
-
     const relativePath = `public-books/${fileName}`;
 
     const description = data.summaries?.[0]
@@ -152,6 +160,7 @@ const importBook = async (id: string): Promise<ImportResult> => {
       language: data.languages?.[0] || "en",
       description,
       filepath: relativePath,
+      coverImageUrl: coverImageUrl || undefined,
       wordCount,
       visibility: "public",
       subjects: data.subjects || [],

@@ -10,7 +10,7 @@ export interface IBook {
   subjects?: string[];
 
   filepath: string;
-  coverImagePath?: string;
+  coverImageUrl?: string;
 
   wordCount?: number;
 
@@ -31,7 +31,7 @@ const bookSchema = new Schema<IBook>(
     subjects: { type: [String], default: [] },
 
     filepath: { type: String, required: true, trim: true, unique: true },
-    coverImagePath: { type: String, trim: true },
+    coverImageUrl: { type: String, trim: true },
 
     wordCount: { type: Number, min: 0 },
     visibility: {
