@@ -21,7 +21,7 @@ export const bookSchema = z
         /^(?!.*\.\.)(?![/\\])(?:[\w-]+(?:[/\\][\w-]+)*)\.txt$/i,
         "Relativna putanja koja se završava na .txt, bez '..'",
       ),
-    coverImageUrl: z
+    imageUrl: z
       .url({ error: "Mora biti validan URL" })
       .regex(/\.(png|jpg|jpeg)$/i, "URL mora biti slika (.png/.jpg/.jpeg)")
       .optional(),

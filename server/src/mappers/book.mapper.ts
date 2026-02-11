@@ -7,7 +7,7 @@ type BookMapperInput = Pick<
   | "title"
   | "author"
   | "language"
-  | "coverImagePath"
+  | "imageUrl"
   | "wordCount"
   | "description"
   | "subjects"
@@ -21,7 +21,7 @@ export const toBookListDTO = (book: BookMapperInput): BookListDTO => ({
   title: book.title,
   author: book.author,
   language: book.language,
-  coverImagePath: book.coverImagePath,
+  imageUrl: book.imageUrl,
   wordCount: book.wordCount,
 });
 

@@ -74,7 +74,7 @@ const getTxtUrl = (formats: Record<string, string>): string | null => {
 };
 
 // Find URL for cover image (image/jpeg format)
-const getCoverImageUrl = (formats: Record<string, string>): string | null => {
+const getImageUrl = (formats: Record<string, string>): string | null => {
   for (const [key, url] of Object.entries(formats)) {
     if (/^image\/jpeg/i.test(key)) return url;
   }
@@ -139,7 +139,7 @@ const importBook = async (id: string): Promise<ImportResult> => {
     if (!txtRes.ok)
       throw new Error(`Failed to download TXT (status ${txtRes.status})`);
 
-    const coverImageUrl = getCoverImageUrl(data.formats);
+    const imageUrl = getImageUrl(data.formats);
 
     const rawText = await txtRes.text();
     const cleanText = cleanGutenbergText(rawText);
@@ -160,7 +160,7 @@ const importBook = async (id: string): Promise<ImportResult> => {
       language: data.languages?.[0] || "en",
       description,
       filepath: relativePath,
-      coverImageUrl: coverImageUrl || undefined,
+      imageUrl: imageUrl || undefined,
       wordCount,
       visibility: "public",
       subjects: data.subjects || [],
