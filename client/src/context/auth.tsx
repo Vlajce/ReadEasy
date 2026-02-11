@@ -21,3 +21,4 @@ export const auth: AuthContext = {
     auth.isAuthenticated = !!user;
   },
 };
+
