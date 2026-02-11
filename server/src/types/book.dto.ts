@@ -3,7 +3,7 @@ export interface BookListDTO {
   title: string;
   author: string;
   language: string;
-  coverImageUrl?: string;
+  imageUrl?: string;
   wordCount?: number;
 }
 

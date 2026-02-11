@@ -3,6 +3,7 @@ export interface Book {
   title: string;
   author: string;
   language: string;
+  imageUrl?: string;
   wordCount?: number;
 }
 

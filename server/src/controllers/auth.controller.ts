@@ -183,7 +183,10 @@ const logout = asyncHandler(async (req: Request, res: Response) => {
   res.clearCookie("refreshToken", COOKIE_OPTIONS);
   res.clearCookie("accessToken", COOKIE_OPTIONS);
   // Is refresh token in DB?
-  const foundUser = await User.findOne({ refreshToken }).exec();
+  const foundUser = await User.findOne({ refreshToken })
+    .select("+refreshToken")
+    .exec();
+
   if (foundUser) {
     // Delete refresh token in DB
     foundUser.refreshToken = foundUser.refreshToken.filter(
