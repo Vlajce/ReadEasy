@@ -1,7 +1,7 @@
 import { Book, type IBook } from "../models/book.model.js";
 import type { BookInput, FindBooksQuery } from "../validation/book.schema.js";
 import { storageService } from "../services/storage.service.js";
-import { NotFoundError } from "../errors/not.found.error.js";
+import { NotFoundError } from "../errors/not-found.error.js";
 
 const EXCLUDE_FIELDS = {
   filepath: 0,

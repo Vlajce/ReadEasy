@@ -10,7 +10,7 @@ import type {
 } from "../validation/vocabulary.schema.js";
 import type { VocabularyStatsDTO } from "../types/vocabulary.dto.js";
 import { Book } from "../models/book.model.js";
-import { NotFoundError } from "../errors/not.found.error.js";
+import { NotFoundError } from "../errors/not-found.error.js";
 
 const EXCLUDE_FIELDS = "-__v";
 

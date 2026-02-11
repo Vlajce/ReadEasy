@@ -15,7 +15,7 @@ import { asyncHandler } from "../utils/async.handler.js";
 import { toUserDTO } from "../mappers/user.mapper.js";
 import type { UserDTO } from "../types/user.dto.js";
 import { isMongoDuplicateError } from "../utils/db.errors.js";
-import { BadRequestError } from "../errors/bad.request.error.js";
+import { BadRequestError } from "../errors/bad-request.error.js";
 
 const COOKIE_OPTIONS: CookieOptions = {
   httpOnly: true,

@@ -3,7 +3,7 @@ import { asyncHandler } from "../utils/async.handler.js";
 import { userRepository } from "../repositories/user.repository.js";
 import { updateUserSchema } from "../validation/user.schema.js";
 import { sendSuccess } from "../utils/response.handler.js";
-import { NotFoundError } from "../errors/not.found.error.js";
+import { NotFoundError } from "../errors/not-found.error.js";
 import { ConflictError } from "../errors/conflict.error.js";
 import { toUserDTO } from "../mappers/user.mapper.js";
 import { isMongoDuplicateError } from "../utils/db.errors.js";

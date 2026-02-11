@@ -7,7 +7,7 @@ import {
 } from "../validation/vocabulary.schema.js";
 import { asyncHandler } from "../utils/async.handler.js";
 import { sendSuccess } from "../utils/response.handler.js";
-import { NotFoundError } from "../errors/not.found.error.js";
+import { NotFoundError } from "../errors/not-found.error.js";
 import { isMongoDuplicateError } from "../utils/db.errors.js";
 import { ConflictError } from "../errors/conflict.error.js";
 import type {

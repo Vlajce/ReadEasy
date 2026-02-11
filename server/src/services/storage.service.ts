@@ -1,8 +1,8 @@
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
-import { NotFoundError } from "../errors/not.found.error.js";
-import { InternalServerError } from "../errors/internal.server.error.js";
+import { NotFoundError } from "../errors/not-found.error.js";
+import { InternalServerError } from "../errors/internal-server.error.js";
 
 // Možemo ovo izvući u config.ts kasnije, ali za sad je OK
 const STORAGE_ROOT = path.resolve(process.cwd(), "storage");
