@@ -13,10 +13,10 @@ import { ConflictError } from "../errors/conflict.error.js";
 import type {
   PaginatedVocabularyDTO,
   VocabularyStatsDTO,
-} from "../types/vocabulary.dto.js";
+} from "../types/vocabulary.js";
 import {
-  toVocabularyDetailDTO,
-  toVocabularyListDTO,
+  toVocabularyEntryDetailDTO,
+  toVocabularyEntryDTO,
 } from "../mappers/vocabulary.mapper.js";
 
 const getVocabularyEntries = asyncHandler(
@@ -27,7 +27,7 @@ const getVocabularyEntries = asyncHandler(
     const result = await vocabularyRepository.findEntries(userId, query);
 
     const paginatedDTO: PaginatedVocabularyDTO = {
-      data: result.data.map(toVocabularyListDTO),
+      data: result.data.map(toVocabularyEntryDTO),
       meta: result.meta,
     };
 
@@ -56,7 +56,7 @@ const getVocabularyEntryById = asyncHandler(
 
     return sendSuccess(
       res,
-      toVocabularyDetailDTO(entry),
+      toVocabularyEntryDetailDTO(entry),
       "Vocabulary entry fetched successfully",
       200,
     );
@@ -72,7 +72,7 @@ const createVocabularyEntry = asyncHandler(
       const entry = await vocabularyRepository.createEntry(userId, parsed);
       return sendSuccess(
         res,
-        toVocabularyDetailDTO(entry),
+        toVocabularyEntryDetailDTO(entry),
         "Vocabulary entry created successfully",
         201,
       );
@@ -106,7 +106,7 @@ const updateVocabularyEntry = asyncHandler(
 
       return sendSuccess(
         res,
-        toVocabularyDetailDTO(updated),
+        toVocabularyEntryDetailDTO(updated),
         "Vocabulary entry updated successfully",
         200,
       );

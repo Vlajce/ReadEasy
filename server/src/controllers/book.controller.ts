@@ -7,9 +7,9 @@ import {
 } from "../validation/book.schema.js";
 import { bookRepository } from "../repositories/book.repository.js";
 import { asyncHandler } from "../utils/async.handler.js";
-import { toBookDetailDTO, toBookListDTO } from "../mappers/book.mapper.js";
+import { toBookDetailDTO, toBookDTO } from "../mappers/book.mapper.js";
 import { sendError, sendSuccess } from "../utils/response.handler.js";
-import type { PaginatedBooksDTO } from "../types/book.dto.js";
+import type { PaginatedBooksDTO } from "../types/book.js";
 import { NotFoundError } from "../errors/not-found.error.js";
 import { BadRequestError } from "../errors/bad-request.error.js";
 import { isMongoDuplicateError } from "../utils/db.errors.js";
@@ -21,7 +21,7 @@ const getPublicBooks = asyncHandler(async (req: Request, res: Response) => {
   const result = await bookRepository.findPublicBooks(query);
 
   const paginatedDTO: PaginatedBooksDTO = {
-    data: result.data.map(toBookListDTO),
+    data: result.data.map(toBookDTO),
     meta: result.meta,
   };
 
@@ -133,7 +133,7 @@ const getMyBooks = asyncHandler(async (req: Request, res: Response) => {
   const result = await bookRepository.findPrivateBooks(userId, query);
 
   const paginatedDTO: PaginatedBooksDTO = {
-    data: result.data.map(toBookListDTO),
+    data: result.data.map(toBookDTO),
     meta: result.meta,
   };
 

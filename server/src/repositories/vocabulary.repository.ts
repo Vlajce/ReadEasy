@@ -8,7 +8,7 @@ import type {
   UpdateVocabularyInput,
   FindVocabularyQueryInput,
 } from "../validation/vocabulary.schema.js";
-import type { VocabularyStatsDTO } from "../types/vocabulary.dto.js";
+import type { VocabularyStatsDTO } from "../types/vocabulary.js";
 import { Book } from "../models/book.model.js";
 import { NotFoundError } from "../errors/not-found.error.js";
 

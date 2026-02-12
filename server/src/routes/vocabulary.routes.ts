@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { vocabularyController } from "../controllers/vocabulary.controller.js";
 import { isAuthenticated } from "../middlewares/auth.middleware.js";
-import { validateObjectId } from "../middlewares/validateObjectId.middleware.js";
+import { validateObjectId } from "../middlewares/validate-object-id.middleware.js";
 import config from "../config/config.js";
-import { rateLimiter } from "../middlewares/rateLimit.middleware.js";
+import { rateLimiter } from "../middlewares/rate-limit.middleware.js";
 
 const {
   getVocabularyEntries,

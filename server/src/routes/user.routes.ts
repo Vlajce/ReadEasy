@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { isAuthenticated } from "../middlewares/auth.middleware.js";
 import { userController } from "../controllers/user.controller.js";
-import { rateLimiter } from "../middlewares/rateLimit.middleware.js";
+import { rateLimiter } from "../middlewares/rate-limit.middleware.js";
 import config from "../config/config.js";
 
 const { getCurrentUser, updateCurrentUser } = userController;

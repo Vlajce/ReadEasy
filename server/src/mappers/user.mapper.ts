@@ -1,5 +1,5 @@
 import type { IUser } from "../models/user.model.js";
-import type { UserDTO } from "../types/user.dto.js";
+import type { UserDTO } from "../types/user.js";
 
 type UserMapperInput = Pick<
   IUser,

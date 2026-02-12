@@ -13,7 +13,7 @@ import { sendSuccess } from "../utils/response.handler.js";
 import { UnauthorizedError } from "../errors/unauthorized.error.js";
 import { asyncHandler } from "../utils/async.handler.js";
 import { toUserDTO } from "../mappers/user.mapper.js";
-import type { UserDTO } from "../types/user.dto.js";
+import type { UserDTO } from "../types/user.js";
 import { isMongoDuplicateError } from "../utils/db.errors.js";
 import { BadRequestError } from "../errors/bad-request.error.js";
 
@@ -64,7 +64,7 @@ const login = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = loginSchema.parse(req.body);
 
   const foundUser = await User.findOne({ email })
-    .select("+password +refreshToken")
+    .select("+password +refreshTokens")
     .exec();
   if (!foundUser) {
     throw new BadRequestError("Invalid email or password");
@@ -79,19 +79,21 @@ const login = asyncHandler(async (req: Request, res: Response) => {
   const newRefreshToken = signRefreshToken(foundUser._id.toString());
 
   let newRefreshTokenArray = !cookies.refreshToken
-    ? foundUser.refreshToken
-    : foundUser.refreshToken.filter((rt) => rt !== cookies.refreshToken);
+    ? foundUser.refreshTokens
+    : foundUser.refreshTokens.filter((rt) => rt !== cookies.refreshToken);
 
   if (cookies.refreshToken) {
     const refreshToken = cookies.refreshToken as string;
 
-    const foundToken = await User.findOne({ refreshToken }).exec();
+    const foundToken = await User.findOne({
+      refreshTokens: refreshToken,
+    }).exec();
     if (!foundToken) {
       newRefreshTokenArray = [];
     }
   }
 
-  foundUser.refreshToken = [...newRefreshTokenArray, newRefreshToken];
+  foundUser.refreshTokens = [...newRefreshTokenArray, newRefreshToken];
   await foundUser.save();
 
   res.cookie("refreshToken", newRefreshToken, COOKIE_OPTIONS);
@@ -117,8 +119,8 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
   res.clearCookie("refreshToken", COOKIE_OPTIONS);
   res.clearCookie("accessToken", COOKIE_OPTIONS);
 
-  const foundUser = await User.findOne({ refreshToken })
-    .select("+refreshToken")
+  const foundUser = await User.findOne({ refreshTokens: refreshToken })
+    .select("+refreshTokens")
     .exec();
 
   // Token not in DB => possible reuse
@@ -127,10 +129,10 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
       const decoded = verifyRefreshToken(refreshToken);
       // revoke all tokens for that userId
       const hackedUser = await User.findById(decoded.userId)
-        .select("+refreshToken")
+        .select("+refreshTokens")
         .exec();
       if (hackedUser) {
-        hackedUser.refreshToken = [];
+        hackedUser.refreshTokens = [];
         await hackedUser.save();
       }
     } catch {
@@ -140,7 +142,7 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // remove current token for rotation
-  const newRefreshTokenArray = foundUser.refreshToken.filter(
+  const newRefreshTokenArray = foundUser.refreshTokens.filter(
     (rt) => rt !== refreshToken,
   );
 
@@ -149,7 +151,7 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
 
     if (decoded.userId !== foundUser._id.toString()) {
       // mismatch -> remove token and forbid
-      foundUser.refreshToken = [...newRefreshTokenArray];
+      foundUser.refreshTokens = [...newRefreshTokenArray];
       await foundUser.save();
       throw new UnauthorizedError("Invalid or expired refresh token");
     }
@@ -158,7 +160,7 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
     const accessToken = signAccessToken(decoded.userId);
     const newRefreshToken = signRefreshToken(decoded.userId);
 
-    foundUser.refreshToken = [...newRefreshTokenArray, newRefreshToken];
+    foundUser.refreshTokens = [...newRefreshTokenArray, newRefreshToken];
     await foundUser.save();
 
     res.cookie("refreshToken", newRefreshToken, COOKIE_OPTIONS);
@@ -167,7 +169,7 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
     return sendSuccess(res, null, "Token refreshed successfully", 200);
   } catch {
     // expired/invalid -> remove token from DB and forbid
-    foundUser.refreshToken = [...newRefreshTokenArray];
+    foundUser.refreshTokens = [...newRefreshTokenArray];
     await foundUser.save();
     throw new UnauthorizedError("Invalid or expired refresh token");
   }
@@ -183,13 +185,13 @@ const logout = asyncHandler(async (req: Request, res: Response) => {
   res.clearCookie("refreshToken", COOKIE_OPTIONS);
   res.clearCookie("accessToken", COOKIE_OPTIONS);
   // Is refresh token in DB?
-  const foundUser = await User.findOne({ refreshToken })
-    .select("+refreshToken")
+  const foundUser = await User.findOne({ refreshTokens: refreshToken })
+    .select("+refreshTokens")
     .exec();
 
   if (foundUser) {
     // Delete refresh token in DB
-    foundUser.refreshToken = foundUser.refreshToken.filter(
+    foundUser.refreshTokens = foundUser.refreshTokens.filter(
       (rt) => rt !== refreshToken,
     );
     await foundUser.save();

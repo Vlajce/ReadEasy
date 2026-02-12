@@ -5,7 +5,7 @@ export interface IUser {
   username: string;
   email: string;
   password: string;
-  refreshToken: string[];
+  refreshTokens: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,7 +30,7 @@ const userSchema = new Schema<IUser>(
       required: true,
       select: false,
     },
-    refreshToken: {
+    refreshTokens: {
       type: [String],
       select: false,
       default: [],

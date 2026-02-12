@@ -6,7 +6,7 @@ import { bookRoutes } from "./routes/book.routes.js";
 import { vocabularyRoutes } from "./routes/vocabulary.routes.js";
 import { corsConfig } from "./config/cors.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
-import { globalLimiter } from "./middlewares/rateLimit.middleware.js";
+import { globalLimiter } from "./middlewares/rate-limit.middleware.js";
 
 const app = express();
 

@@ -1,4 +1,8 @@
 import type { IVocabularyEntry } from "../models/vocabulary.model.js";
+import type {
+  VocabularyEntryDetailDTO,
+  VocabularyEntryDTO,
+} from "../types/vocabulary.js";
 
 type VocabularyMapperInput = Pick<
   IVocabularyEntry,
@@ -16,7 +20,9 @@ type VocabularyMapperInput = Pick<
   | "updatedAt"
 >;
 
-export const toVocabularyListDTO = (entry: VocabularyMapperInput) => ({
+export const toVocabularyEntryDTO = (
+  entry: VocabularyMapperInput,
+): VocabularyEntryDTO => ({
   id: entry._id.toString(),
   word: entry.word,
   language: entry.language,
@@ -25,7 +31,9 @@ export const toVocabularyListDTO = (entry: VocabularyMapperInput) => ({
   meaning: entry.meaning ?? null,
 });
 
-export const toVocabularyDetailDTO = (entry: VocabularyMapperInput) => ({
+export const toVocabularyEntryDetailDTO = (
+  entry: VocabularyMapperInput,
+): VocabularyEntryDetailDTO => ({
   id: entry._id.toString(),
   bookId: entry.bookId.toString(),
   word: entry.word,

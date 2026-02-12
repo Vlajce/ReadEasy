@@ -1,5 +1,5 @@
 import type { IBook } from "../models/book.model.js";
-import type { BookListDTO, BookDetailDTO } from "../types/book.dto.js";
+import type { BookDTO, BookDetailDTO } from "../types/book.js";
 
 type BookMapperInput = Pick<
   IBook,
@@ -16,7 +16,7 @@ type BookMapperInput = Pick<
   | "updatedAt"
 >;
 
-export const toBookListDTO = (book: BookMapperInput): BookListDTO => ({
+export const toBookDTO = (book: BookMapperInput): BookDTO => ({
   id: book._id.toString(),
   title: book.title,
   author: book.author,
@@ -26,7 +26,7 @@ export const toBookListDTO = (book: BookMapperInput): BookListDTO => ({
 });
 
 export const toBookDetailDTO = (book: BookMapperInput): BookDetailDTO => ({
-  ...toBookListDTO(book),
+  ...toBookDTO(book),
   description: book.description,
   subjects: book.subjects || [],
 });

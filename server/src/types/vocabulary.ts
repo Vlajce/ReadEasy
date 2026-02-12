@@ -1,4 +1,4 @@
-export interface VocabularyListDTO {
+export interface VocabularyEntryDTO {
   id: string;
   word: string;
   language: string;
@@ -10,7 +10,7 @@ export interface VocabularyListDTO {
   };
 }
 
-export interface VocabularyDetailDTO {
+export interface VocabularyEntryDetailDTO {
   id: string;
   bookId: string;
   word: string;
@@ -28,7 +28,7 @@ export interface VocabularyDetailDTO {
 }
 
 export interface PaginatedVocabularyDTO {
-  data: VocabularyListDTO[];
+  data: VocabularyEntryDTO[];
   meta: {
     page: number;
     limit: number;
