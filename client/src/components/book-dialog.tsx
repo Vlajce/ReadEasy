@@ -1,6 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogClose,
@@ -14,7 +12,7 @@ import { getPublicBookQueryOptions } from "@/query-options/get-public-book-query
 import type { Book } from "@/types/book";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { TextAlignStart, UserRoundPen } from "lucide-react";
+import { Book as BookIcon, TextAlignStart, UserRoundPen } from "lucide-react";
 import { getEmoji, getLanguage, getName } from "language-flag-colors";
 import { Badge } from "./ui/badge";
 
@@ -90,11 +88,11 @@ export function BookDialog({ book, ...props }: BookDialogProps) {
               </p>
             )}
             <div className="flex gap-2">
-              <Link
-                to="/library"
-                className={cn(buttonVariants({ variant: "outline" }))}
-              >
-                Read in Library
+              <Link to="/library">
+                <Button variant={"outline"}>
+                  <BookIcon />
+                  Read in Library
+                </Button>
               </Link>
               <DialogClose asChild>
                 <Button className="shadow-sm">Close</Button>
