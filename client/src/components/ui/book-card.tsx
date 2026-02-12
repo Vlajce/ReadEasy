@@ -9,10 +9,10 @@ export function BookCard({ book, ...props }: BookCardProps) {
   const cleanTitle = book.title.replace(/[:;].*$/, "");
   return (
     <div
-      className="w-44 max-h-96 overflow-hidden transition-transform duration-150 hover:-translate-y-1 hover:scale-105 cursor-pointer"
+      className="w-44 max-h-100 overflow-hidden transition-transform duration-150 hover:-translate-y-1 hover:scale-105 cursor-pointer"
       {...props}
     >
-      <div className="overflow-hidden m-px h-60 rounded-md outline">
+      <div className="overflow-hidden m-px h-64 rounded-md outline">
         <Image loading="lazy" src={book.imageUrl} alt={book.title} />
       </div>
 
