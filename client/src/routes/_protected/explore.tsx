@@ -38,7 +38,7 @@ function RouteComponent() {
   }
   return (
     <div className="container mx-auto">
-      <div className="mb-8 flex flex-wrap gap-4 justify-between items-center">
+      <div className="mb-10 flex flex-wrap gap-4 justify-between items-center">
         <form className="flex flex-1 gap-2" onSubmit={handleSearch}>
           <Input
             className="min-w-45 max-w-sm bg-accent/70"
