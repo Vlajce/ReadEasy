@@ -168,7 +168,7 @@ const updatePrivateBookMetadata = async (
   return Book.findOneAndUpdate(
     { _id: id, visibility: "private", ownerId: userId },
     { $set: updates },
-    { new: true, runValidators: true, context: "query" },
+    { returnDocument: "after", runValidators: true, context: "query" },
   )
     .select(EXCLUDE_FIELDS)
     .lean()
