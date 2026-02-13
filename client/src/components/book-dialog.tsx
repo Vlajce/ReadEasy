@@ -47,14 +47,10 @@ export function BookDialog({ book, ...props }: BookDialogProps) {
           </DialogTitle>
           <DialogDescription className="italic -mb-2">
             <span className="flex items-center justify-between gap-10">
-              {bookDetails.author.toLowerCase() === "unknown" ? (
-                ""
-              ) : (
-                <span className="flex items-center gap-2">
-                  <UserRoundPen size={18} />
-                  {bookDetails.author}
-                </span>
-              )}
+              <span className="flex items-center gap-2">
+                <UserRoundPen size={18} />
+                {bookDetails.author}
+              </span>
               {countryName && languageName && (
                 <span className="text-nowrap not-italic text-primary">
                   {getEmoji(countryName) + " " + languageName}
