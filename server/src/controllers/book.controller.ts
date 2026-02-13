@@ -252,6 +252,11 @@ const deleteMyBook = asyncHandler(async (req: Request, res: Response) => {
   return sendSuccess(res, null, "Book deleted successfully", 200);
 });
 
+const getBooksLanguages = asyncHandler(async (req: Request, res: Response) => {
+  const languages = await bookRepository.findDistinctLanguages();
+  return sendSuccess(res, languages, "Languages retrieved successfully", 200);
+});
+
 export const bookController = {
   getPublicBooks,
   getPublicBookById,
@@ -262,4 +267,5 @@ export const bookController = {
   getMyBookContent,
   updateMyBookMetadata,
   deleteMyBook,
+  getBooksLanguages,
 };
