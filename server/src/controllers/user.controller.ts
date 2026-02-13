@@ -8,7 +8,6 @@ import { ConflictError } from "../errors/conflict.error.js";
 import { toUserDTO } from "../mappers/user.mapper.js";
 import { isMongoDuplicateError } from "../utils/db.errors.js";
 import { verifyAccessToken } from "../utils/jwt.js";
-import { bookRepository } from "../repositories/book.repository.js";
 
 const getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
   const accessToken = req.cookies.accessToken;
@@ -78,60 +77,4 @@ const updateCurrentUser = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
-const getReadingList = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user!.userId;
-
-  const readingList = await userRepository.getReadingList(userId);
-
-  return sendSuccess(res, readingList, "Reading list retrieved", 200);
-});
-
-const addToReadingList = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user!.userId;
-  const { bookId } = req.params;
-
-  let book = await bookRepository.findPublicBookById(bookId as string);
-  if (!book) {
-    book = await bookRepository.findPrivateBookById(bookId as string, userId);
-  }
-  if (!book) {
-    throw new NotFoundError("Book not found");
-  }
-
-  const updatedBookIds = await userRepository.addBookToReadingList(
-    userId,
-    bookId as string,
-  );
-
-  return sendSuccess(res, updatedBookIds, "Reading list updated", 200);
-});
-
-const removeFromReadingList = asyncHandler(
-  async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
-    const { bookId } = req.params;
-
-    let book = await bookRepository.findPublicBookById(bookId as string);
-    if (!book) {
-      book = await bookRepository.findPrivateBookById(bookId as string, userId);
-    }
-    if (!book) {
-      throw new NotFoundError("Book not found");
-    }
-
-    const updatedBookIds = await userRepository.removeBookFromReadingList(
-      userId,
-      bookId as string,
-    );
-
-    return sendSuccess(res, updatedBookIds, "Reading list updated", 200);
-  },
-);
-
-export const userController = {
-  getCurrentUser,
-  updateCurrentUser,
-  getReadingList,
-  addToReadingList,
-  removeFromReadingList,
-};
+export const userController = { getCurrentUser, updateCurrentUser };

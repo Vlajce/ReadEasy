@@ -4,13 +4,7 @@ import { userController } from "../controllers/user.controller.js";
 import { rateLimiter } from "../middlewares/rate-limit.middleware.js";
 import config from "../config/config.js";
 
-const {
-  getCurrentUser,
-  updateCurrentUser,
-  addToReadingList,
-  getReadingList,
-  removeFromReadingList,
-} = userController;
+const { getCurrentUser, updateCurrentUser } = userController;
 
 const strictLimiter = rateLimiter(
   config.rateLimit.strict.maxRequests,
@@ -25,9 +19,5 @@ router.get("/me", getCurrentUser);
 router.use(isAuthenticated);
 
 router.put("/me", strictLimiter, updateCurrentUser);
-
-router.get("/me/reading-list", getReadingList);
-router.post("/me/reading-list/:bookId", addToReadingList);
-router.delete("/me/reading-list/:bookId", removeFromReadingList);
 
 export const userRoutes = router;
