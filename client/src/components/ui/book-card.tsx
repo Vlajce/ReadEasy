@@ -1,15 +1,19 @@
 import type { Book } from "@/types/book";
 import { Image } from "./image";
+import { cn } from "@/lib/utils";
 
 type BookCardProps = React.ComponentProps<"div"> & {
   book: Book;
 };
 
-export function BookCard({ book, ...props }: BookCardProps) {
+export function BookCard({ book, className, ...props }: BookCardProps) {
   const cleanTitle = book.title.replace(/[:;].*$/, "");
   return (
     <div
-      className="w-44 max-h-100 overflow-hidden transition-transform duration-150 hover:-translate-y-1 hover:scale-105 cursor-pointer"
+      className={cn(
+        "w-44 max-h-100 overflow-hidden transition-transform duration-150 hover:-translate-y-1 hover:scale-105 cursor-pointer",
+        className,
+      )}
       {...props}
     >
       <div className="overflow-hidden m-px h-64 rounded-md outline">
