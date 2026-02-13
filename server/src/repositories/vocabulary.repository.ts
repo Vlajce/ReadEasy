@@ -123,7 +123,7 @@ const updateEntry = async (
   return VocabularyEntry.findOneAndUpdate(
     { _id: id, userId },
     { $set: data },
-    { returnDocument: "after", runValidators: true },
+    { new: true, runValidators: true },
   )
     .select(EXCLUDE_FIELDS)
     .lean()
