@@ -8,12 +8,7 @@ export const updateUserSchema = z
       .max(25, "Username cannot exceed 25 characters")
       .trim()
       .optional(),
-    email: z
-      .string()
-      .email("Invalid email format")
-      .lowercase()
-      .trim()
-      .optional(),
+    email: z.email("Invalid email format").lowercase().trim().optional(),
   })
   .refine((data) => data.username || data.email, {
     message:
