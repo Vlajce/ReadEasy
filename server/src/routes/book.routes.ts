@@ -19,6 +19,7 @@ const {
   getMyBookContent,
   updateMyBookMetadata,
   deleteMyBook,
+  getBooksLanguages,
 } = bookController;
 
 const strictLimiter = rateLimiter(
@@ -33,6 +34,7 @@ router.use(isAuthenticated);
 
 // Specific routes FIRST
 router.get("/", getPublicBooks);
+router.get("/languages", getBooksLanguages);
 router.get("/my", getMyBooks);
 router.get("/my/:id/content", validateObjectId("id"), getMyBookContent);
 router.get("/my/:id", validateObjectId("id"), getMyBookById);
@@ -54,5 +56,4 @@ router.post(
 // Parameterized routes AFTER
 router.get("/:id/content", validateObjectId("id"), getPublicBookContent);
 router.get("/:id", validateObjectId("id"), getPublicBookById);
-
 export const bookRoutes = router;

@@ -186,6 +186,10 @@ const deletePrivateBook = async (
   }).exec();
 };
 
+const findDistinctLanguages = async (): Promise<string[]> => {
+  return await Book.find({ visibility: "public" }).distinct("language").exec();
+};
+
 const countWordsInFile = async (filePath: string): Promise<number> => {
   return await storageService.countWordsStream(filePath);
 };
@@ -205,6 +209,7 @@ export const bookRepository = {
   createPrivateBook,
   updatePrivateBookMetadata,
   deletePrivateBook,
+  findDistinctLanguages,
   countWordsInFile,
   deleteFile,
 };
