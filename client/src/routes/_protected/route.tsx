@@ -30,7 +30,7 @@ function SidebarLayout() {
       <Sidebar />
       <SidebarInset>
         <Header />
-        <div className="flex flex-col flex-1 my-6 mx-4 sm:mx-8 pb-6">
+        <div className="flex flex-col flex-1 my-10 mx-4 sm:mx-10">
           <Outlet />
         </div>
       </SidebarInset>
