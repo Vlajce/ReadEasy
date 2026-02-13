@@ -6,10 +6,27 @@ export interface IUser {
   email: string;
   password: string;
   refreshTokens: string[];
-  bookIds?: mongoose.Types.ObjectId[];
+  readingBooks?: IReadingBook[];
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface IReadingBook {
+  bookId: mongoose.Types.ObjectId;
+  title: string;
+  author: string;
+  imageUrl?: string;
+}
+
+const readingBookSchema = new Schema<IReadingBook>(
+  {
+    bookId: { type: Schema.Types.ObjectId, ref: "Book", required: true },
+    title: { type: String, required: true, trim: true },
+    author: { type: String, required: true, trim: true },
+    imageUrl: { type: String, trim: true },
+  },
+  { _id: false },
+);
 
 const userSchema = new Schema<IUser>(
   {
@@ -36,9 +53,8 @@ const userSchema = new Schema<IUser>(
       select: false,
       default: [],
     },
-    bookIds: {
-      type: [Schema.Types.ObjectId],
-      ref: "Book",
+    readingBooks: {
+      type: [readingBookSchema],
       default: [],
     },
   },

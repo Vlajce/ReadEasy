@@ -1,5 +1,6 @@
-import { User, type IUser } from "../models/user.model.js";
+import { User, type IReadingBook, type IUser } from "../models/user.model.js";
 import { type UpdateUserInput } from "../validation/user.schema.js";
+import { type ReadingBook } from "../types/user.js";
 
 const findById = async (id: string): Promise<IUser | null> => {
   return await User.findById(id).lean().exec();
@@ -29,45 +30,48 @@ const update = async (
     .exec();
 };
 
-const getReadingList = async (userId: string): Promise<string[]> => {
-  const user = await User.findById(userId).select("bookIds").lean().exec();
-  return (user?.bookIds || []).map((id) => id.toString());
+const getReadingList = async (userId: string): Promise<IReadingBook[]> => {
+  const user = await User.findById(userId).select("readingBooks").lean().exec();
+  return user?.readingBooks || [];
 };
 
 const addBookToReadingList = async (
   userId: string,
-  bookId: string,
-): Promise<string[]> => {
+  book: ReadingBook,
+): Promise<IReadingBook[]> => {
   //Remove the bookId if it already exists (to avoid duplicates)
-  await User.updateOne({ _id: userId }, { $pull: { bookIds: bookId } });
+  await User.updateOne(
+    { _id: userId },
+    { $pull: { readingBooks: { bookId: book.bookId } } },
+  );
 
   // Push it to the end and cap at 10
   const updated = await User.findByIdAndUpdate(
     userId,
     {
-      $push: { bookIds: { $each: [bookId], $slice: -10 } }, // Dodaj na kraj i ograniči na zadnjih 10
+      $push: { readingBooks: { $each: [book], $slice: -10 } }, // Dodaj na kraj i ograniči na zadnjih 10
     },
-    { returnDocument: "after", select: "bookIds" },
+    { returnDocument: "after", select: "readingBooks" },
   )
     .lean()
     .exec();
 
-  return (updated?.bookIds || []).map((id) => id.toString());
+  return updated?.readingBooks || [];
 };
 
 const removeBookFromReadingList = async (
   userId: string,
   bookId: string,
-): Promise<string[]> => {
+): Promise<IReadingBook[]> => {
   const updated = await User.findByIdAndUpdate(
     userId,
-    { $pull: { bookIds: bookId } },
-    { returnDocument: "after", select: "bookIds" },
+    { $pull: { readingBooks: { bookId } } },
+    { returnDocument: "after", select: "readingBooks" },
   )
     .lean()
     .exec();
 
-  return (updated?.bookIds || []).map((id) => id.toString());
+  return updated?.readingBooks || [];
 };
 
 export const userRepository = {

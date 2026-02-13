@@ -9,6 +9,7 @@ import { toUserDTO } from "../mappers/user.mapper.js";
 import { isMongoDuplicateError } from "../utils/db.errors.js";
 import { verifyAccessToken } from "../utils/jwt.js";
 import { bookRepository } from "../repositories/book.repository.js";
+import { type ReadingBook } from "../types/user.js";
 
 const getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
   const accessToken = req.cookies.accessToken;
@@ -98,12 +99,18 @@ const addToReadingList = asyncHandler(async (req: Request, res: Response) => {
     throw new NotFoundError("Book not found");
   }
 
-  const updatedBookIds = await userRepository.addBookToReadingList(
-    userId,
-    bookId as string,
-  );
+  const readingBook: ReadingBook = {
+    bookId: book._id.toString(),
+    title: book.title,
+    author: book.author,
+    imageUrl: book.imageUrl,
+  };
 
-  return sendSuccess(res, updatedBookIds, "Reading list updated", 200);
+  const updatedReadingBooks = await userRepository.addBookToReadingList(
+    userId,
+    readingBook,
+  );
+  return sendSuccess(res, updatedReadingBooks, "Reading list updated", 200);
 });
 
 const removeFromReadingList = asyncHandler(
@@ -119,12 +126,12 @@ const removeFromReadingList = asyncHandler(
       throw new NotFoundError("Book not found");
     }
 
-    const updatedBookIds = await userRepository.removeBookFromReadingList(
+    const updatedReadingBooks = await userRepository.removeBookFromReadingList(
       userId,
       bookId as string,
     );
 
-    return sendSuccess(res, updatedBookIds, "Reading list updated", 200);
+    return sendSuccess(res, updatedReadingBooks, "Reading list updated", 200);
   },
 );
 

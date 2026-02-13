@@ -1,8 +1,15 @@
+export interface ReadingBook {
+  bookId: string;
+  title: string;
+  author: string;
+  imageUrl?: string;
+}
+
 export interface UserDTO {
   id: string;
   username: string;
   email: string;
-  bookIds?: string[];
+  readingBooks?: ReadingBook[];
   createdAt: string;
   updatedAt: string;
 }
