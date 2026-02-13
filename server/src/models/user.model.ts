@@ -6,6 +6,7 @@ export interface IUser {
   email: string;
   password: string;
   refreshTokens: string[];
+  bookIds?: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +34,11 @@ const userSchema = new Schema<IUser>(
     refreshTokens: {
       type: [String],
       select: false,
+      default: [],
+    },
+    bookIds: {
+      type: [Schema.Types.ObjectId],
+      ref: "Book",
       default: [],
     },
   },
