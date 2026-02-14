@@ -11,10 +11,10 @@ import {
 import { getPublicBookQueryOptions } from "@/query-options/get-public-book-query-options";
 import type { Book } from "@/types/book";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { Book as BookIcon, TextAlignStart, UserRoundPen } from "lucide-react";
 import { getEmoji, getLanguage, getName } from "language-flag-colors";
 import { Badge } from "./ui/badge";
+import { useUpdateReadingList } from "@/mutations/use-update-reading-list";
 
 type BookDialogProps = React.ComponentProps<typeof Dialog> & {
   book: Book;
@@ -24,6 +24,8 @@ export function BookDialog({ book, ...props }: BookDialogProps) {
   const { data: bookDetails } = useSuspenseQuery(
     getPublicBookQueryOptions(book.id),
   );
+  const { mutate: addToReadingList } = useUpdateReadingList();
+
   const countryName = getLanguage(bookDetails.language)?.country;
   const languageName = getName(bookDetails.language);
 
@@ -60,7 +62,7 @@ export function BookDialog({ book, ...props }: BookDialogProps) {
           </DialogDescription>
         </DialogHeader>
         {bookDetails.description && (
-          <div className="no-scrollbar -mx-6 p-6 pr-7 text-justify max-h-[35vh] inset-shadow-lg/15 bg-secondary overflow-y-auto">
+          <div className="no-scrollbar -mx-6 p-6 pr-7 text-justify max-h-[35vh] inset-shadow-lg/15 bg-accent overflow-y-auto">
             {bookDetails.description}
           </div>
         )}
@@ -84,12 +86,13 @@ export function BookDialog({ book, ...props }: BookDialogProps) {
               </p>
             )}
             <div className="flex gap-2">
-              <Link to="/library">
-                <Button variant={"outline"}>
-                  <BookIcon />
-                  Read in Library
-                </Button>
-              </Link>
+              <Button
+                variant={"outline"}
+                onClick={() => addToReadingList(bookDetails.id)}
+              >
+                <BookIcon />
+                Read in Library
+              </Button>
               <DialogClose asChild>
                 <Button className="shadow-sm">Close</Button>
               </DialogClose>

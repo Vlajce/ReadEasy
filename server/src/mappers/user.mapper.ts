@@ -12,7 +12,7 @@ export const toUserDTO = (user: UserMapperInput): UserDTO => {
     username: user.username,
     email: user.email,
     readingBooks: user.readingBooks?.map((rb) => ({
-      bookId: rb.bookId.toString(),
+      id: rb.id.toString(),
       title: rb.title,
       author: rb.author,
       imageUrl: rb.imageUrl,

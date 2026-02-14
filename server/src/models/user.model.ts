@@ -12,7 +12,7 @@ export interface IUser {
 }
 
 export interface IReadingBook {
-  bookId: mongoose.Types.ObjectId;
+  id: mongoose.Types.ObjectId;
   title: string;
   author: string;
   imageUrl?: string;
@@ -20,7 +20,7 @@ export interface IReadingBook {
 
 const readingBookSchema = new Schema<IReadingBook>(
   {
-    bookId: { type: Schema.Types.ObjectId, ref: "Book", required: true },
+    id: { type: Schema.Types.ObjectId, ref: "Book", required: true },
     title: { type: String, required: true, trim: true },
     author: { type: String, required: true, trim: true },
     imageUrl: { type: String, trim: true },

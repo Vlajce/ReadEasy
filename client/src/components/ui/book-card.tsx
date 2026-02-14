@@ -1,9 +1,10 @@
 import type { Book } from "@/types/book";
 import { Image } from "./image";
 import { cn } from "@/lib/utils";
+import type { ReadingBook } from "@/types/user";
 
 type BookCardProps = React.ComponentProps<"div"> & {
-  book: Book;
+  book: Book | ReadingBook;
 };
 
 export function BookCard({ book, className, ...props }: BookCardProps) {
@@ -23,7 +24,7 @@ export function BookCard({ book, className, ...props }: BookCardProps) {
       <h4 className="py-3 px-4 text-primary text-center text-base font-medium">
         <span>{cleanTitle}</span>
         <span className="mt-1.5 text-sm font-normal block italic">
-          {book.author.toLowerCase() === "unknown" ? "" : `${book.author}`}
+          {book.author}
         </span>
       </h4>
     </div>

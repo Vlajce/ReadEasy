@@ -100,7 +100,7 @@ const addToReadingList = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const readingBook: ReadingBook = {
-    bookId: book._id.toString(),
+    id: book._id.toString(),
     title: book.title,
     author: book.author,
     imageUrl: book.imageUrl,
