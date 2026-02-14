@@ -1,5 +1,6 @@
 import type { ApiResponse } from "@/types/api-response";
 import { ApiError } from "@/lib/api-error";
+import { ErrorCodes } from "@/lib/error-codes";
 import config from "@/config";
 
 const API_URL = config.apiUrl;
@@ -69,6 +70,31 @@ class ApiClient {
     return this.request<T>(url, {
       method: "GET",
     });
+  }
+
+  async getText(endpoint: string, tryRefresh = true): Promise<string> {
+    const res = await fetch(`${this.baseUrl}${endpoint}`, {
+      credentials: "include",
+      method: "GET",
+    });
+
+    if (!res.ok) {
+      if (
+        res.status === 401 &&
+        tryRefresh &&
+        !endpoint.includes(this.refreshEndpoint)
+      ) {
+        await this.handleTokenRefresh();
+        return this.getText(endpoint, false);
+      }
+      throw new ApiError(
+        "Failed to fetch text content",
+        res.status,
+        ErrorCodes.SYS_INTERNAL_ERROR,
+      );
+    }
+
+    return res.text();
   }
 
   post<T>(url: string, data = {}, contentType = "application/json") {

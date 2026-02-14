@@ -4,12 +4,12 @@ import {
   CarouselItem,
   CarouselNext,
 } from "./carousel";
-import type { Book } from "@/types/book";
+import type { ReadingBook } from "@/types/user";
 import { BookCard } from "./book-card";
 import { cn } from "@/lib/utils";
 
 type BooksCarouselProps = React.ComponentProps<typeof Carousel> & {
-  books: Book[];
+  books: ReadingBook[];
   onBookCardClick?: (bookId: string) => void;
 };
 

@@ -42,7 +42,7 @@ const addBookToReadingList = async (
   //Remove the bookId if it already exists (to avoid duplicates)
   await User.updateOne(
     { _id: userId },
-    { $pull: { readingBooks: { bookId: book.bookId } } },
+    { $pull: { readingBooks: { id: book.id } } },
   );
 
   // Push it to the end and cap at 10

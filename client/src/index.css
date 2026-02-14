@@ -116,6 +116,7 @@
   --radius-4xl: calc(var(--radius) + 16px);
   --inset-shadow-md: inset 0 2px 3px rgba(0, 0, 0, 0.25);
   --inset-shadow-lg: inset 0 4px 8px rgba(0, 0, 0, 0.25);
+  --inset-shadow-xl: inset 0 6px 12px rgba(0, 0, 0, 0.25);
 }
 
 @layer base {

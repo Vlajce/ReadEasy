@@ -1,5 +1,5 @@
 export interface ReadingBook {
-  bookId: string;
+  id: string;
   title: string;
   author: string;
   imageUrl?: string;
