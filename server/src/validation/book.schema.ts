@@ -18,8 +18,8 @@ export const bookSchema = z
       .string()
       .trim()
       .regex(
-        /^(?!.*\.\.)(?![/\\])(?:[\w-]+(?:[/\\][\w-]+)*)\.txt$/i,
-        "Relativna putanja koja se završava na .txt, bez '..'",
+        /^(?!.*\.\.)(?![/\\])(?:[\w-]+(?:[/\\][\w-]+)*)\.(txt|html)$/i,
+        "Relativna putanja koja se završava na .txt ili .html, bez '..'",
       ),
     imageUrl: z
       .url({ error: "Mora biti validan URL" })

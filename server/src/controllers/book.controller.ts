@@ -58,9 +58,9 @@ const getPublicBookContent = asyncHandler(
       throw new NotFoundError("Book content not found");
     }
 
-    const { stream, size } = result;
+    const { stream, size, contentType } = result;
 
-    res.type("text/plain; charset=utf-8");
+    res.type(`${contentType}; charset=utf-8`);
     res.setHeader("Content-Length", String(size));
     stream.pipe(res);
 
@@ -175,9 +175,9 @@ const getMyBookContent = asyncHandler(async (req: Request, res: Response) => {
     throw new NotFoundError("Book content not found");
   }
 
-  const { stream, size } = result;
+  const { stream, size, contentType } = result;
 
-  res.type("text/plain; charset=utf-8");
+  res.type(`${contentType}; charset=utf-8`);
   res.setHeader("Content-Length", String(size));
   stream.pipe(res);
 

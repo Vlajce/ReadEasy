@@ -29,7 +29,9 @@ function RouteComponent() {
         </div>
         <BookCarouselSection />
       </div>
-      <Outlet />
+      <section id="book-content">
+        <Outlet />
+      </section>
     </div>
   );
 }

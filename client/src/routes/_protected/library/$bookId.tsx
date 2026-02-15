@@ -1,52 +1,44 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { getPublicBookQueryOptions } from "@/query-options/get-public-book-query-options";
 import { getPublicBookContentQueryOptions } from "@/query-options/get-public-book-content-query-options";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { UserRoundPen } from "lucide-react";
-import { getEmoji, getLanguage, getName } from "language-flag-colors";
+import DOMPurify from "dompurify";
+import { useMemo } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { BookTextSkeleton } from "@/components/ui/book-text-skeleteon.";
 
 export const Route = createFileRoute("/_protected/library/$bookId")({
   component: RouteComponent,
   loader: async ({ params, context: { queryClient } }) => {
     const { bookId } = params;
-    await Promise.all([
-      queryClient.ensureQueryData(getPublicBookQueryOptions(bookId)),
-      queryClient.ensureQueryData(getPublicBookContentQueryOptions(bookId)),
-    ]);
+    return queryClient.ensureQueryData(
+      getPublicBookContentQueryOptions(bookId),
+    );
   },
+  pendingComponent: () => (
+    <div className="px-15 py-20 w-full mx-auto max-w-none">
+      <Skeleton className="w-80 h-8 bg-muted-foreground/20" />
+      <Skeleton className="w-56 mt-6 h-6 bg-muted-foreground/20" />
+      <Skeleton className="w-44 mt-4 h-5 bg-muted-foreground/20" />
+      <BookTextSkeleton className="mt-10" />
+    </div>
+  ),
 });
 
 function RouteComponent() {
   const { bookId } = Route.useParams();
-  const { data: bookDetails } = useSuspenseQuery(
-    getPublicBookQueryOptions(bookId),
-  );
   const { data: bookContent } = useSuspenseQuery(
     getPublicBookContentQueryOptions(bookId),
   );
 
-  const countryName = getLanguage(bookDetails.language)?.country;
-  const languageName = getName(bookDetails.language);
-  return (
-    <section id="book-content" className="min-h-200">
-      <div className="py-20 px-15">
-        <div className="sm:w-xl mx-auto text-center">
-          <h2 className="text-3xl font-semibold">{bookDetails.title}</h2>
-          <p className="flex mt-2 gap-2 items-center justify-center text-muted-foreground">
-            <UserRoundPen size={18} />
-            {bookDetails.author}
-            {countryName && languageName && (
-              <span className="text-muted-foreground">
-                {`(${getEmoji(countryName)} ${languageName})`}
-              </span>
-            )}
-          </p>
-        </div>
+  const sanitizedHtml = useMemo(
+    () => DOMPurify.sanitize(bookContent, { FORBID_TAGS: ["img"] }),
+    [bookContent],
+  );
 
-        <div className="mt-20 w-2xl mx-auto whitespace-break-spaces text-base">
-          {bookContent}
-        </div>
-      </div>
-    </section>
+  return (
+    <div
+      className="p-15 py-20 mx-auto w-full prose text-justify max-w-none"
+      dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+    ></div>
   );
 }

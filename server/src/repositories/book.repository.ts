@@ -99,7 +99,11 @@ const findBookById = async (
 const findBookContentById = async (
   id: string,
   filter: BookFilter,
-): Promise<{ stream: NodeJS.ReadableStream; size: number } | null> => {
+): Promise<{
+  stream: NodeJS.ReadableStream;
+  size: number;
+  contentType: string;
+} | null> => {
   const mongoFilter: Record<string, unknown> = {
     _id: id,
     visibility: filter.visibility,
@@ -112,8 +116,13 @@ const findBookContentById = async (
   const book = await Book.findOne(mongoFilter).lean().exec();
   if (!book || !book.filepath) return null;
 
+  const contentType = book.filepath.endsWith(".html")
+    ? "text/html"
+    : "text/plain";
+
   try {
-    return await storageService.getFileStream(book.filepath);
+    const result = await storageService.getFileStream(book.filepath);
+    return { ...result, contentType };
   } catch (err: unknown) {
     if (err instanceof NotFoundError) return null;
     throw err;

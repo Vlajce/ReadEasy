@@ -65,10 +65,44 @@ const cleanGutenbergText = (text: string) => {
   return text.slice(startIndex, endIndex).trim();
 };
 
+const cleanGutenbergHtml = (html: string): string => {
+  // Extract body content
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+  let content = bodyMatch?.[1] ?? html;
+
+  // Remove everything up to and including the START marker and its containing element
+  content = content.replace(
+    /[\s\S]*?\*\*\*\s*START OF (?:THE |THIS )?PROJECT GUTENBERG[^*]*\*\*\*\s*(?:<\/[^>]+>)?/i,
+    "",
+  );
+
+  // Remove everything from the END marker's containing element onward
+  content = content.replace(
+    /(?:<[^>]+>)?\s*\*\*\*\s*END OF (?:THE |THIS )?PROJECT GUTENBERG[\s\S]*/i,
+    "",
+  );
+
+  // Remove img tags (images are not downloaded/stored locally)
+  content = content.replace(/<img[^>]*>/gi, "");
+
+  return content.trim();
+};
+
+const stripHtmlTags = (html: string): string => {
+  return html.replace(/<[^>]*>/g, " ");
+};
+
 const countWords = (text: string) => {
   const trimmed = text.replace(/\s+/g, " ").trim();
   if (!trimmed) return 0;
   return trimmed.split(" ").length;
+};
+
+const getHtmlUrl = (formats: Record<string, string>): string | null => {
+  for (const [key, url] of Object.entries(formats)) {
+    if (/^text\/html/i.test(key)) return url;
+  }
+  return null;
 };
 
 const getTxtUrl = (formats: Record<string, string>): string | null => {
@@ -188,20 +222,30 @@ const fetchBook = async (id: string): Promise<FetchResult> => {
     const rawData = await res.json();
     const data: GutendexBook = gutendexBookSchema.parse(rawData);
 
+    const htmlUrl = getHtmlUrl(data.formats);
     const txtUrl = getTxtUrl(data.formats);
-    if (!txtUrl) return { id, success: false, reason: "No TXT format" };
+    const contentUrl = htmlUrl || txtUrl;
+    const isHtml = !!htmlUrl;
 
-    const txtRes = await fetchWithRetry(txtUrl);
-    if (!txtRes.ok)
-      throw new Error(`TXT download failed (status ${txtRes.status})`);
+    if (!contentUrl)
+      return { id, success: false, reason: "No HTML or TXT format" };
 
-    const rawText = await txtRes.text();
-    const cleanText = cleanGutenbergText(rawText);
-    const wordCount = countWords(cleanText);
+    const contentRes = await fetchWithRetry(contentUrl);
+    if (!contentRes.ok)
+      throw new Error(`Content download failed (status ${contentRes.status})`);
 
-    const fileName = `${crypto.randomUUID()}.txt`;
+    const rawContent = await contentRes.text();
+    const cleanContent = isHtml
+      ? cleanGutenbergHtml(rawContent)
+      : cleanGutenbergText(rawContent);
+    const wordCount = isHtml
+      ? countWords(stripHtmlTags(cleanContent))
+      : countWords(cleanContent);
+
+    const extension = isHtml ? "html" : "txt";
+    const fileName = `${data.id}.${extension}`;
     const localPath = path.join(STORAGE_DIR, fileName);
-    await fs.writeFile(localPath, cleanText);
+    await fs.writeFile(localPath, cleanContent);
 
     const imageUrl = getImageUrl(data.formats);
     const description = data.summaries?.[0]?.slice(0, 2000);
