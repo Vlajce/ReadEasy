@@ -65,7 +65,7 @@ const removeBookFromReadingList = async (
 ): Promise<IReadingBook[]> => {
   const updated = await User.findByIdAndUpdate(
     userId,
-    { $pull: { readingBooks: { bookId } } },
+    { $pull: { readingBooks: { id: bookId } } },
     { returnDocument: "after", select: "readingBooks" },
   )
     .lean()

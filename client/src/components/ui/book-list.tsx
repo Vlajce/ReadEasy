@@ -1,6 +1,6 @@
 import type { Book } from "@/types/book";
 import { cn } from "@/lib/utils";
-import { Suspense, useState } from "react";
+import { useState } from "react";
 import {
   Empty,
   EmptyDescription,
@@ -64,13 +64,11 @@ export function BookList({
             />
           ))}
           {selectedBook && (
-            <Suspense fallback={null}>
-              <BookDialog
-                book={selectedBook}
-                open={open}
-                onOpenChange={setOpen}
-              />
-            </Suspense>
+            <BookDialog
+              bookId={selectedBook.id}
+              open={open}
+              onOpenChange={setOpen}
+            />
           )}
         </>
       )}

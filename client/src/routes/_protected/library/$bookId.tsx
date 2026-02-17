@@ -1,18 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { getPublicBookContentQueryOptions } from "@/query-options/get-public-book-content-query-options";
+import { getBookContentQueryOptions } from "@/query-options/get-book-content-query-options";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
-import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BookTextSkeleton } from "@/components/ui/book-text-skeleteon.";
+import { useMemo } from "react";
+import {
+  SelectionPopover,
+  SelectionPopoverContent,
+  SelectionPopoverTrigger,
+  useSelectedText,
+} from "@/components/ui/selection-popover";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_protected/library/$bookId")({
   component: RouteComponent,
   loader: async ({ params, context: { queryClient } }) => {
     const { bookId } = params;
-    return queryClient.ensureQueryData(
-      getPublicBookContentQueryOptions(bookId),
-    );
+    return queryClient.ensureQueryData(getBookContentQueryOptions(bookId));
   },
   pendingComponent: () => (
     <div className="px-15 py-20 w-full mx-auto max-w-none">
@@ -27,7 +33,7 @@ export const Route = createFileRoute("/_protected/library/$bookId")({
 function RouteComponent() {
   const { bookId } = Route.useParams();
   const { data: bookContent } = useSuspenseQuery(
-    getPublicBookContentQueryOptions(bookId),
+    getBookContentQueryOptions(bookId),
   );
 
   const sanitizedHtml = useMemo(
@@ -36,9 +42,26 @@ function RouteComponent() {
   );
 
   return (
-    <div
-      className="p-15 py-20 mx-auto w-full prose text-justify max-w-none"
-      dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-    ></div>
+    <SelectionPopover>
+      <SelectionPopoverTrigger>
+        <div
+          dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+          className="p-15 py-20 mx-auto w-full prose text-justify max-w-none selection:text-muted selection:bg-primary"
+        />
+      </SelectionPopoverTrigger>
+      <SelectionPopoverContent>
+        <AddToVocabularyButton />
+      </SelectionPopoverContent>
+    </SelectionPopover>
+  );
+}
+
+function AddToVocabularyButton() {
+  const selectedText = useSelectedText();
+
+  return (
+    <Button onClick={() => toast.success(`Selected: "${selectedText}"`)}>
+      Add to vocabulary
+    </Button>
   );
 }

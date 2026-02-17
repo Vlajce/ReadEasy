@@ -1,5 +1,6 @@
 import { BooksCarousel } from "@/components/ui/books-carousel";
 import { Button } from "@/components/ui/button";
+import { useRemoveFromReadingList } from "@/mutations/use-remove-from-reading-list";
 import {
   createFileRoute,
   Link,
@@ -37,10 +38,11 @@ function RouteComponent() {
 }
 
 function BookCarouselSection() {
+  const navigate = useNavigate({ from: Route.fullPath });
   const {
     user: { readingBooks },
   } = useRouteContext({ from: "/_protected" });
-  const navigate = useNavigate({ from: Route.fullPath });
+  const { mutate: removeFromReadingList } = useRemoveFromReadingList();
 
   const handleBookCardClick = (bookId: string) => {
     navigate({
@@ -55,6 +57,7 @@ function BookCarouselSection() {
       <BooksCarousel
         books={readingBooks}
         onBookCardClick={handleBookCardClick}
+        onBookRemove={removeFromReadingList}
         className="mb-10"
       />
       <div

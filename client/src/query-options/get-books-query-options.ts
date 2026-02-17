@@ -2,7 +2,7 @@ import { apiClient } from "@/lib/api-client";
 import type { BookSearchParams } from "@/schemas/book";
 import type { PaginatedBooks } from "@/types/book";
 
-export function getPublicBooksQueryOptions({
+export function getBooksQueryOptions({
   page,
   limit,
   search,

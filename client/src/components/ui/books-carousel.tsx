@@ -11,11 +11,13 @@ import { cn } from "@/lib/utils";
 type BooksCarouselProps = React.ComponentProps<typeof Carousel> & {
   books: ReadingBook[];
   onBookCardClick?: (bookId: string) => void;
+  onBookRemove?: (bookId: string) => void;
 };
 
 export function BooksCarousel({
   books,
   onBookCardClick,
+  onBookRemove,
   className,
   ...props
 }: BooksCarouselProps) {
@@ -29,12 +31,20 @@ export function BooksCarousel({
         {books.map((book) => (
           <CarouselItem
             key={book.id}
-            className="basis-1/3 lg:basis-1/4 2xl:basis-1/5 pl-4 py-4"
+            className="basis-1/3 lg:basis-1/4 2xl:basis-1/5 pl-6 py-6"
           >
             <BookCard
               book={book}
               className="mx-auto"
               onClick={() => onBookCardClick?.(book.id)}
+              onRemove={
+                onBookRemove
+                  ? (e) => {
+                      e.stopPropagation();
+                      onBookRemove(book.id);
+                    }
+                  : undefined
+              }
             />
           </CarouselItem>
         ))}
