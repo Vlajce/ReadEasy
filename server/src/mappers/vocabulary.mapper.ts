@@ -12,6 +12,7 @@ type VocabularyMapperInput = Pick<
   | "word"
   | "language"
   | "status"
+  | "highlightColor"
   | "bookSnapshot"
   | "meaning"
   | "context"
@@ -27,6 +28,7 @@ export const toVocabularyEntryDTO = (
   word: entry.word,
   language: entry.language,
   status: entry.status,
+  highlightColor: entry.highlightColor,
   bookSnapshot: entry.bookSnapshot,
   meaning: entry.meaning ?? null,
 });
@@ -39,6 +41,7 @@ export const toVocabularyEntryDetailDTO = (
   word: entry.word,
   language: entry.language,
   status: entry.status,
+  highlightColor: entry.highlightColor,
   bookSnapshot: entry.bookSnapshot,
   meaning: entry.meaning ?? null,
   context: entry.context ?? null,

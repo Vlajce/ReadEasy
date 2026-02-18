@@ -37,6 +37,7 @@ const createEntry = async (
     word: data.word,
     language: data.language,
     status: data.status,
+    highlightColor: data.highlightColor,
     meaning: data.meaning ?? null,
     context: data.context ?? null,
     position: data.position ?? null,
@@ -195,10 +196,21 @@ const getVocabularyStats = async (
   return stats;
 };
 
+const findBookWords = async (
+  userId: string,
+  bookId: string,
+): Promise<{ word: string; highlightColor: string }[]> => {
+  return VocabularyEntry.find({ userId, bookId })
+    .select("word highlightColor -_id")
+    .lean()
+    .exec();
+};
+
 export const vocabularyRepository = {
   createEntry,
   findEntries,
   findEntryById,
+  findBookWords,
   updateEntry,
   deleteEntry,
   getVocabularyStats,

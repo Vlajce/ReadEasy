@@ -94,7 +94,7 @@ function BookDialogContent({ bookId }: { bookId: string }) {
           <div className="flex gap-2 items-center">
             <Button
               variant={"outline"}
-              onClick={() => addToReadingList(bookDetails.id)}
+              onClick={() => addToReadingList(bookDetails)}
             >
               <BookIcon />
               Read in Library

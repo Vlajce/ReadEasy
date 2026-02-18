@@ -1,13 +1,21 @@
+export type HighlightColor = "yellow" | "green" | "blue" | "pink" | "purple";
+
 export interface VocabularyEntryDTO {
   id: string;
   word: string;
   language: string;
   status: "new" | "learning" | "mastered";
+  highlightColor: HighlightColor;
   meaning?: string | null;
   bookSnapshot: {
     title: string;
     author: string;
   };
+}
+
+export interface BookVocabularyWordDTO {
+  word: string;
+  highlightColor: HighlightColor;
 }
 
 export interface VocabularyEntryDetailDTO {
@@ -16,6 +24,7 @@ export interface VocabularyEntryDetailDTO {
   word: string;
   language: string;
   status: "new" | "learning" | "mastered";
+  highlightColor: HighlightColor;
   meaning?: string | null;
   context?: string | null;
   position?: { startOffset: number; endOffset: number } | null;

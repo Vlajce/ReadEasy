@@ -13,6 +13,7 @@ import { ConflictError } from "../errors/conflict.error.js";
 import type {
   PaginatedVocabularyDTO,
   VocabularyStatsDTO,
+  BookVocabularyWordDTO,
 } from "../types/vocabulary.js";
 import {
   toVocabularyEntryDetailDTO,
@@ -147,6 +148,28 @@ const vocabularyStats = asyncHandler(async (req: Request, res: Response) => {
   return sendSuccess(res, stats, "Vocabulary stats fetched successfully", 200);
 });
 
+const getBookWords = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const { bookId } = req.params;
+
+  const words = await vocabularyRepository.findBookWords(
+    userId,
+    bookId as string,
+  );
+
+  const dto: BookVocabularyWordDTO[] = words.map((w) => ({
+    word: w.word,
+    highlightColor: w.highlightColor as BookVocabularyWordDTO["highlightColor"],
+  }));
+
+  return sendSuccess(
+    res,
+    dto,
+    "Book vocabulary words fetched successfully",
+    200,
+  );
+});
+
 export const vocabularyController = {
   getVocabularyEntries,
   getVocabularyEntryById,
@@ -154,4 +177,5 @@ export const vocabularyController = {
   updateVocabularyEntry,
   deleteVocabularyEntry,
   vocabularyStats,
+  getBookWords,
 };

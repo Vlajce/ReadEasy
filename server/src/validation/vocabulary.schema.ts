@@ -34,6 +34,10 @@ export const createVocabularySchema = z.object({
       message: "Language must be ISO 639-1 code (e.g., 'en', 'fr')",
     }),
   status: z.enum(["new", "learning", "mastered"]).optional().default("new"),
+  highlightColor: z
+    .enum(["yellow", "green", "blue", "pink", "purple"])
+    .optional()
+    .default("yellow"),
 });
 
 export const updateVocabularySchema = z.object({
@@ -45,6 +49,9 @@ export const updateVocabularySchema = z.object({
     .optional(),
   context: z.string().min(2).max(500).optional(),
   status: z.enum(["new", "learning", "mastered"]).optional(),
+  highlightColor: z
+    .enum(["yellow", "green", "blue", "pink", "purple"])
+    .optional(),
   language: z
     .string()
     .trim()

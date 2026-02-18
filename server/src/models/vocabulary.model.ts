@@ -1,5 +1,15 @@
 import mongoose, { Schema } from "mongoose";
 
+export const HIGHLIGHT_COLORS = [
+  "yellow",
+  "green",
+  "blue",
+  "pink",
+  "purple",
+] as const;
+
+export type HighlightColor = (typeof HIGHLIGHT_COLORS)[number];
+
 export interface IVocabularyEntry {
   _id: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
@@ -7,6 +17,7 @@ export interface IVocabularyEntry {
   word: string;
   language: string;
   status: "new" | "learning" | "mastered";
+  highlightColor: HighlightColor;
   bookSnapshot: {
     title: string;
     author: string;
@@ -72,6 +83,11 @@ const vocabularySchema = new Schema<IVocabularyEntry>(
       enum: ["new", "learning", "mastered"],
       default: "new",
     },
+    highlightColor: {
+      type: String,
+      enum: HIGHLIGHT_COLORS,
+      default: "yellow",
+    },
     bookSnapshot: {
       type: bookSnapshotSchema,
       required: true,
@@ -124,6 +140,7 @@ vocabularySchema.index(
     name: "idx_text_search",
     weights: { word: 10, context: 1 },
     default_language: "english",
+    language_override: "none",
   },
 );
 

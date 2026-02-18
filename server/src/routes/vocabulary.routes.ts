@@ -12,6 +12,7 @@ const {
   updateVocabularyEntry,
   deleteVocabularyEntry,
   vocabularyStats,
+  getBookWords,
 } = vocabularyController;
 
 const strictLimiter = rateLimiter(
@@ -27,6 +28,7 @@ router.use(isAuthenticated);
 router.get("/", getVocabularyEntries);
 router.post("/", strictLimiter, createVocabularyEntry);
 router.get("/stats", vocabularyStats);
+router.get("/books/:bookId/words", validateObjectId("bookId"), getBookWords);
 router.get("/:id", validateObjectId("id"), getVocabularyEntryById);
 router.put(
   "/:id",

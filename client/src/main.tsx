@@ -94,7 +94,7 @@ if (!rootElement.innerHTML) {
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
       <Toaster expand={true} position="top-right" />
-      <ReactQueryDevtools initialIsOpen={false} />
+      {/* <ReactQueryDevtools initialIsOpen={false} /> */}
     </QueryClientProvider>,
   );
 }

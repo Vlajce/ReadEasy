@@ -36,6 +36,18 @@ function useSelectedText() {
   return useSelectionPopoverContext().selectedText;
 }
 
+/**
+ * Returns a function to programmatically close the selection popover
+ * and clear the browser text selection.
+ */
+function useSelectionPopoverClose() {
+  const { setOpen } = useSelectionPopoverContext();
+  return React.useCallback(() => {
+    window.getSelection()?.removeAllRanges();
+    setOpen(false);
+  }, [setOpen]);
+}
+
 /* --------------------------------- Root ---------------------------------- */
 
 interface SelectionPopoverProps {
@@ -71,7 +83,17 @@ function SelectionPopover({
 
     let pointerDownInsideTrigger = false;
 
+    const isInsidePopoverContent = (target: Node) => {
+      const content = document.querySelector(
+        "[data-slot='selection-popover-content']",
+      );
+      return content?.contains(target) ?? false;
+    };
+
     const handlePointerDown = (e: PointerEvent) => {
+      // Ignore clicks inside the popover content (e.g. color swatches)
+      if (isInsidePopoverContent(e.target as Node)) return;
+
       pointerDownInsideTrigger = trigger.contains(e.target as Node);
 
       // Always close the previous popover when starting a new selection
@@ -117,6 +139,10 @@ function SelectionPopover({
 
     const handleSelectionChange = () => {
       // If the selection collapses (e.g. user clicks elsewhere), close.
+      // But ignore if the focus is inside the popover content (e.g. clicking a button).
+      const active = document.activeElement;
+      if (active && isInsidePopoverContent(active)) return;
+
       const selection = window.getSelection();
       if (!selection || selection.isCollapsed) {
         clearTimeout(openTimerRef.current);
@@ -197,6 +223,9 @@ function SelectionPopoverContent({
         side={side}
         sideOffset={sideOffset}
         align={align}
+        // Prevent any click inside the popover from moving focus, which
+        // would collapse the user's text selection.
+        onPointerDown={(e) => e.preventDefault()}
         // Prevent the popover from stealing focus (which would collapse the
         // user's text selection).
         onOpenAutoFocus={(e) => {
@@ -240,4 +269,5 @@ export {
   SelectionPopoverContent,
   SelectionPopoverArrow,
   useSelectedText,
+  useSelectionPopoverClose,
 };
