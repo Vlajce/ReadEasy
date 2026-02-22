@@ -138,8 +138,8 @@ function SelectionPopover({
     };
 
     const handleSelectionChange = () => {
-      // If the selection collapses (e.g. user clicks elsewhere), close.
-      // But ignore if the focus is inside the popover content (e.g. clicking a button).
+      // If focus is inside the popover content (e.g. typing in an input),
+      // don't react to selection changes at all.
       const active = document.activeElement;
       if (active && isInsidePopoverContent(active)) return;
 
@@ -147,6 +147,20 @@ function SelectionPopover({
       if (!selection || selection.isCollapsed) {
         clearTimeout(openTimerRef.current);
         setOpen(false);
+        return;
+      }
+
+      // Update the selected text when the user extends/modifies the
+      // selection (e.g. Shift+Arrow keys) while the popover is open.
+      const text = selection.toString().trim();
+      if (text && selection.rangeCount) {
+        const range = selection.getRangeAt(0);
+        if (trigger.contains(range.commonAncestorContainer)) {
+          virtualRef.current = {
+            getBoundingClientRect: () => range.getBoundingClientRect(),
+          };
+          setSelectedText(text);
+        }
       }
     };
 
@@ -223,9 +237,16 @@ function SelectionPopoverContent({
         side={side}
         sideOffset={sideOffset}
         align={align}
-        // Prevent any click inside the popover from moving focus, which
-        // would collapse the user's text selection.
-        onPointerDown={(e) => e.preventDefault()}
+        // Prevent clicks on non-interactive areas from stealing focus
+        // (which would collapse the text selection), but allow inputs,
+        // textareas and buttons to be focused normally.
+        onPointerDown={(e) => {
+          const target = e.target as HTMLElement;
+          const interactive = target.closest(
+            "input, textarea, select, button, [role='button'], a",
+          );
+          if (!interactive) e.preventDefault();
+        }}
         // Prevent the popover from stealing focus (which would collapse the
         // user's text selection).
         onOpenAutoFocus={(e) => {

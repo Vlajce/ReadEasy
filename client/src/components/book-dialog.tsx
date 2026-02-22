@@ -24,9 +24,11 @@ type BookDialogProps = React.ComponentProps<typeof Dialog> & {
 export function BookDialog({ bookId, ...props }: BookDialogProps) {
   return (
     <Dialog {...props}>
-      <Suspense fallback={<BookDialogContentSkeleton />}>
-        <BookDialogContent bookId={bookId} />
-      </Suspense>
+      <DialogContent>
+        <Suspense fallback={<BookDialogContentSkeleton />}>
+          <BookDialogContent bookId={bookId} />
+        </Suspense>
+      </DialogContent>
     </Dialog>
   );
 }
@@ -50,7 +52,7 @@ function BookDialogContent({ bookId }: { bookId: string }) {
   const subjects = Array.from(new Set(subjectsWithDulicates));
 
   return (
-    <DialogContent>
+    <>
       <DialogHeader>
         <DialogTitle className="mr-6 text-lg">{bookDetails.title}</DialogTitle>
         <DialogDescription className="italic -mb-2">
@@ -105,13 +107,13 @@ function BookDialogContent({ bookId }: { bookId: string }) {
           </div>
         </div>
       </DialogFooter>
-    </DialogContent>
+    </>
   );
 }
 
 function BookDialogContentSkeleton() {
   return (
-    <DialogContent>
+    <>
       <DialogHeader>
         <Skeleton className="w-2/3 h-6 mb-2" />
         <div className="flex items-center justify-between gap-10">
@@ -139,6 +141,6 @@ function BookDialogContentSkeleton() {
           </div>
         </div>
       </DialogFooter>
-    </DialogContent>
+    </>
   );
 }

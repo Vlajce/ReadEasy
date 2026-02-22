@@ -15,6 +15,22 @@ import {
   useSelectionPopoverClose,
 } from "@/components/ui/selection-popover";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  addVocabularyFormSchema,
+  type AddVocabularyFormInput,
+} from "@/schemas/vocabulary";
 import { useAddVocabulary } from "@/mutations/use-add-vocabulary";
 import { highlightVocabularyWords, type HighlightWord } from "@/lib/highlight";
 import type { HighlightColor } from "@/types/vocabulary";
@@ -89,15 +105,15 @@ function RouteComponent() {
             className="p-15 py-20 mx-auto w-full prose text-justify max-w-none selection:text-muted selection:bg-primary"
           />
         </SelectionPopoverTrigger>
-        <SelectionPopoverContent>
-          <AddToVocabularyButton book={book} />
+        <SelectionPopoverContent className="p-1 bg-accent">
+          <Popover book={book} />
         </SelectionPopoverContent>
       </SelectionPopover>
 
       <Button
         type="button"
         size="icon"
-        className="fixed right-6 bottom-6 z-50 rounded-full shadow-lg"
+        className="fixed right-6 bottom-6 z-50 rounded-full shadow-xl"
         aria-label="Back to top"
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
       >
@@ -107,13 +123,21 @@ function RouteComponent() {
   );
 }
 
-function AddToVocabularyButton({ book }: { book: BookDetail }) {
+function Popover({ book }: { book: BookDetail }) {
   const selectedText = useSelectedText();
   const closePopover = useSelectionPopoverClose();
   const { mutate: addVocabulary, isPending } = useAddVocabulary();
   const [selectedColor, setSelectedColor] = useState<HighlightColor>("yellow");
 
-  const handleAdd = () => {
+  const form = useForm<AddVocabularyFormInput>({
+    resolver: zodResolver(addVocabularyFormSchema),
+    defaultValues: {
+      meaning: "",
+      context: "",
+    },
+  });
+
+  const handleSubmit = (data: AddVocabularyFormInput) => {
     if (!selectedText.trim()) return;
 
     addVocabulary({
@@ -121,40 +145,98 @@ function AddToVocabularyButton({ book }: { book: BookDetail }) {
       bookId: book.id,
       language: book.language,
       highlightColor: selectedColor,
+      meaning: data.meaning,
+      context: data.context,
     });
 
+    form.reset();
     closePopover();
   };
 
   return (
-    <div className="flex items-center gap-1">
-      <div className="flex items-center gap-1 px-1">
-        {HIGHLIGHT_COLORS.map(({ value, label }) => (
-          <button
-            key={value}
-            type="button"
-            title={label}
-            onClick={() => setSelectedColor(value)}
-            className={cn(
-              "size-5 rounded-full transition-all border-2 vocab-highlight-swatch",
-              `vocab-highlight-swatch-${value}`,
-              selectedColor === value
-                ? "border-foreground scale-110"
-                : "border-transparent opacity-60 hover:opacity-100",
-            )}
-          />
-        ))}
-      </div>
-      <div className="w-px h-5 bg-border" />
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={handleAdd}
-        disabled={isPending || !selectedText.trim()}
-        className="text-xs font-medium"
+    <Form {...form}>
+      <form
+        onSubmit={form.handleSubmit(handleSubmit)}
+        className="flex flex-col gap-3 p-2 w-70"
       >
-        Add to vocabulary
-      </Button>
-    </div>
+        {/* Selected word header */}
+        <div className="text-center">
+          <p className="text-xs text-muted-foreground">Selected word</p>
+          <p className="text-sm font-semibold text-wrap" title={selectedText}>
+            &ldquo;{selectedText}&rdquo;
+          </p>
+        </div>
+
+        {/* Translation input */}
+        <FormField
+          control={form.control}
+          name="meaning"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-xs">Translation</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Add translation or meaning here…"
+                  className="h-7 text-xs md:text-xs p-1.5 pt-1 placeholder:text-xs bg-muted-foreground/5 inset-shadow-sm shadow-none"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage className="text-xs" />
+            </FormItem>
+          )}
+        />
+
+        {/* Note textarea */}
+        <FormField
+          control={form.control}
+          name="context"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-xs">Note</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Add your note or example sentence here…"
+                  className="min-h-14 text-xs md:text-xs p-1.5 placeholder:text-xs bg-muted-foreground/5 resize-none inset-shadow-sm shadow-none"
+                  rows={2}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage className="text-xs" />
+            </FormItem>
+          )}
+        />
+
+        {/* Color picker + submit */}
+        <div className="flex items-center justify-between gap-1.5">
+          <div className="flex items-center gap-1 px-1">
+            {HIGHLIGHT_COLORS.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                title={label}
+                onClick={() => setSelectedColor(value)}
+                className={cn(
+                  "size-5 rounded-full transition-all border-2 vocab-highlight-swatch",
+                  `vocab-highlight-swatch-${value}`,
+                  selectedColor === value
+                    ? "border-foreground scale-110"
+                    : "border-transparent opacity-60 hover:opacity-100",
+                )}
+              />
+            ))}
+          </div>
+          <div className="w-px h-5 bg-border" />
+          <Button
+            size="sm"
+            variant={"ghost"}
+            type="submit"
+            disabled={isPending || !selectedText.trim()}
+            className="text-xs ml-auto font-medium hover:bg-muted-foreground/10"
+          >
+            Add to vocabulary
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 }
