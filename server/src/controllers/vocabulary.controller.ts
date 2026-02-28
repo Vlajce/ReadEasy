@@ -136,7 +136,7 @@ const deleteVocabularyEntry = asyncHandler(
       throw new NotFoundError("Vocabulary entry not found");
     }
 
-    return sendSuccess(res, null, "Vocabulary entry deleted successfully", 204);
+    return sendSuccess(res, null, "Vocabulary entry deleted successfully", 200);
   },
 );
 

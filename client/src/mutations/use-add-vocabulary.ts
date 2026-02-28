@@ -11,11 +11,19 @@ export function useAddVocabulary() {
     mutationFn: (data: CreateVocabularyInput) =>
       apiClient.post<VocabularyEntryDetail>("/vocabulary", data),
 
-    onSuccess: (_data, variables, _context, context) => {
-      // Invalidate the book vocabulary words so highlights update
+    onSuccess: (_data, variables, _onMutateResult, context) => {
       context.client.invalidateQueries({
         queryKey: ["vocabulary", "books", variables.bookId, "words"],
       });
+
+      context.client.invalidateQueries({
+        queryKey: ["vocabulary", "entries"],
+      });
+
+      context.client.invalidateQueries({
+        queryKey: ["vocabulary", "stats"],
+      });
+
       toast.success(`"${variables.word}" added to vocabulary`);
     },
 

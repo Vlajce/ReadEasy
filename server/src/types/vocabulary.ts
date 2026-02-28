@@ -7,6 +7,7 @@ export interface VocabularyEntryDTO {
   status: "new" | "learning" | "mastered";
   highlightColor: HighlightColor;
   meaning?: string | null;
+  context?: string | null;
   bookSnapshot: {
     title: string;
     author: string;

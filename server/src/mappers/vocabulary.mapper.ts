@@ -31,6 +31,7 @@ export const toVocabularyEntryDTO = (
   highlightColor: entry.highlightColor,
   bookSnapshot: entry.bookSnapshot,
   meaning: entry.meaning ?? null,
+  context: entry.context ?? null,
 });
 
 export const toVocabularyEntryDetailDTO = (
