@@ -64,7 +64,7 @@ function RouteComponent() {
       <div className="mb-10 flex flex-wrap gap-4 justify-between items-center">
         <form className="flex flex-1 gap-2" onSubmit={handleSearch}>
           <Input
-            className="min-w-45 max-w-xs bg-accent/60 inset-shadow-md/10"
+            className="min-w-45 max-w-xs bg-accent/60 inset-shadow-md/10 shadow-none"
             placeholder="Search"
             name="search"
             defaultValue={search || ""}

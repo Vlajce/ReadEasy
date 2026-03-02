@@ -2,7 +2,14 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { getEmoji, getLanguage, getName } from "language-flag-colors";
-import { Search, Trash2, BookOpen } from "lucide-react";
+import {
+  Search,
+  Trash2,
+  BookOpen,
+  Clock,
+  Brain,
+  GraduationCap,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -224,11 +231,16 @@ function RouteComponent() {
     <div className="container mx-auto">
       <div className="mb-6 flex flex-wrap gap-2">
         <Badge variant="secondary">Total: {totalWords}</Badge>
-        <Badge variant="outline">New: {stats?.byStatus.new ?? 0}</Badge>
-        <Badge variant="outline">
+        <Badge variant="outline" className="flex items-center gap-1">
+          <StatusIcon status="new" className="size-3.5" />
+          New: {stats?.byStatus.new ?? 0}
+        </Badge>
+        <Badge variant="outline" className="flex items-center gap-1">
+          <StatusIcon status="learning" className="size-3.5" />
           Learning: {stats?.byStatus.learning ?? 0}
         </Badge>
-        <Badge variant="outline">
+        <Badge variant="outline" className="flex items-center gap-1">
+          <StatusIcon status="mastered" className="size-3.5" />
           Mastered: {stats?.byStatus.mastered ?? 0}
         </Badge>
       </div>
@@ -239,7 +251,7 @@ function RouteComponent() {
             name="search"
             defaultValue={searchParams.search || ""}
             placeholder="Search by word..."
-            className="max-w-xl bg-accent/60 inset-shadow-md/10"
+            className="max-w-lg bg-accent/60 inset-shadow-md/10 shadow-none"
           />
           <Button type="submit">
             <Search />
@@ -268,7 +280,17 @@ function RouteComponent() {
                     <SelectLabel>Status</SelectLabel>
                     {STATUS_OPTIONS.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                        {option.value === "all" ? (
+                          option.label
+                        ) : (
+                          <span className="flex items-center gap-2">
+                            <StatusIcon
+                              status={option.value}
+                              className="size-3.5"
+                            />
+                            {option.label}
+                          </span>
+                        )}
                       </SelectItem>
                     ))}
                   </SelectGroup>
@@ -331,7 +353,14 @@ function RouteComponent() {
                     <SelectLabel>Highlight color</SelectLabel>
                     {COLOR_OPTIONS.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                        {option.value === "all" ? (
+                          option.label
+                        ) : (
+                          <span className="flex items-center gap-2">
+                            <ColorDot color={option.value} />
+                            {option.label}
+                          </span>
+                        )}
                       </SelectItem>
                     ))}
                   </SelectGroup>
@@ -372,7 +401,7 @@ function RouteComponent() {
           {sectionsToRender.map((status) => (
             <VocabularySection
               key={status}
-              title={getSectionTitle(status)}
+              status={status}
               entries={grouped[status]}
               onDelete={(entry) =>
                 removeWord({ id: entry.id, word: entry.word })
@@ -404,13 +433,13 @@ function RouteComponent() {
 }
 
 function VocabularySection({
-  title,
+  status,
   entries,
   onDelete,
   onMove,
   isBusy,
 }: {
-  title: string;
+  status: VocabularyStatus;
   entries: VocabularyEntry[];
   onDelete: (entry: VocabularyEntry) => void;
   onMove: (entry: VocabularyEntry, status: VocabularyStatus) => void;
@@ -419,7 +448,10 @@ function VocabularySection({
   return (
     <section className="space-y-4">
       <div className="flex items-center gap-2">
-        <h2 className="text-lg font-semibold">{title}</h2>
+        <h2 className="flex items-center gap-2 text-lg font-semibold">
+          <StatusIcon status={status} className="size-4" />
+          {getStatusLabel(status)}
+        </h2>
         <Badge variant="secondary">{entries.length}</Badge>
       </div>
 
@@ -447,7 +479,10 @@ function VocabularySection({
                       {formatLanguage(entry.language)}
                     </CardDescription>
                   </div>
-                  <Badge variant="outline">{entry.status}</Badge>
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <StatusIcon status={entry.status} className="size-3.5" />
+                    {getStatusLabel(entry.status)}
+                  </Badge>
                 </div>
               </CardHeader>
 
@@ -488,6 +523,7 @@ function VocabularySection({
                     disabled={isBusy}
                     onClick={() => onMove(entry, "new")}
                   >
+                    <StatusIcon status="new" className="size-3.5" />
                     New
                   </Button>
                 )}
@@ -499,6 +535,7 @@ function VocabularySection({
                     disabled={isBusy}
                     onClick={() => onMove(entry, "learning")}
                   >
+                    <StatusIcon status="learning" className="size-3.5" />
                     Learning
                   </Button>
                 )}
@@ -510,6 +547,7 @@ function VocabularySection({
                     disabled={isBusy}
                     onClick={() => onMove(entry, "mastered")}
                   >
+                    <StatusIcon status="mastered" className="size-3.5" />
                     Mastered
                   </Button>
                 )}
@@ -533,10 +571,33 @@ function VocabularySection({
   );
 }
 
-function getSectionTitle(status: VocabularyStatus) {
+function getStatusLabel(status: VocabularyStatus) {
   if (status === "new") return "New";
   if (status === "learning") return "Learning";
   return "Mastered";
+}
+
+function StatusIcon({
+  status,
+  className,
+}: {
+  status: VocabularyStatus;
+  className?: string;
+}) {
+  if (status === "new") return <Clock className={className} />;
+  if (status === "learning") return <Brain className={className} />;
+  return <GraduationCap className={className} />;
+}
+
+function ColorDot({ color }: { color: "all" | HighlightColor }) {
+  return (
+    <span
+      className={cn(
+        "size-3 rounded-full border vocab-highlight-swatch",
+        `vocab-highlight-swatch-${color}`,
+      )}
+    />
+  );
 }
 
 function formatLanguage(language: string) {
