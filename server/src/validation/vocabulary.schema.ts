@@ -91,3 +91,16 @@ export type UpdateVocabularyInput = z.infer<typeof updateVocabularySchema>;
 export type FindVocabularyQueryInput = z.infer<
   typeof findVocabularyQuerySchema
 >;
+
+// Stats Validation Schemas
+export const activityStatsQuerySchema = z.object({
+  days: z.coerce
+    .number()
+    .int()
+    .default(30)
+    .refine((v) => v === 7 || v === 30, {
+      message: "Days must be either 7 or 30",
+    }),
+});
+
+export type ActivityStatsQueryInput = z.infer<typeof activityStatsQuerySchema>;

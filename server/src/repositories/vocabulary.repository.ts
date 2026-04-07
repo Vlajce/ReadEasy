@@ -136,66 +136,6 @@ const deleteEntry = async (id: string, userId: string): Promise<boolean> => {
   return result.deletedCount === 1;
 };
 
-const getVocabularyStats = async (
-  userId: string,
-): Promise<VocabularyStatsDTO> => {
-  const userObjectId = new Types.ObjectId(userId);
-
-  // 1. JEDAN UPIT DO BAZE (Best Practice)
-  // Koristimo Aggregation Framework sa $facet-om da paralelizujemo obradu na nivou baze
-  const [result] = await VocabularyEntry.aggregate([
-    // Koristi se index { userId: 1, createdAt: -1 } za brzo filtriranje
-    { $match: { userId: userObjectId } },
-    {
-      $facet: {
-        // Pipeline 1: Statusi
-        byStatus: [{ $group: { _id: "$status", count: { $sum: 1 } } }],
-        // Pipeline 2: Jezici
-        byLanguage: [{ $group: { _id: "$language", count: { $sum: 1 } } }],
-        // Pipeline 3: Aktivnost po danima
-        byDay: [
-          {
-            $group: {
-              _id: {
-                $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
-              },
-              count: { $sum: 1 },
-            },
-          },
-          { $sort: { _id: 1 } }, // Sortiramo datume hronološki
-        ],
-      },
-    },
-  ]).exec();
-
-  // Inicijalizacija default vrednosti
-  const stats: VocabularyStatsDTO = {
-    byStatus: { new: 0, learning: 0, mastered: 0 },
-    byLanguage: {},
-    byDay: {},
-  };
-
-  // Ako je "result" undefined (ekstremno retko) ili korisnik nema reči
-  if (!result) return stats;
-
-  // 2. MAPIRANJE REZULTATA (Transformacija niza u mape)
-  result.byStatus.forEach((item: { _id: string; count: number }) => {
-    if (["new", "learning", "mastered"].includes(item._id)) {
-      stats.byStatus[item._id as "new" | "learning" | "mastered"] = item.count;
-    }
-  });
-
-  result.byLanguage.forEach((item: { _id: string; count: number }) => {
-    if (item._id) stats.byLanguage[item._id] = item.count;
-  });
-
-  result.byDay.forEach((item: { _id: string; count: number }) => {
-    if (item._id) stats.byDay[item._id] = item.count;
-  });
-
-  return stats;
-};
-
 const findBookWords = async (
   userId: string,
   bookId: string,
@@ -206,6 +146,141 @@ const findBookWords = async (
     .exec();
 };
 
+// Stats Aggregations (Feature 1: MVP Stats)
+
+const getOverviewStatsData = async (
+  userId: string,
+): Promise<{
+  totalCount: Array<{ count: number }>;
+  byStatus: Array<{ _id: string; count: number }>;
+  thisWeekCount: Array<{ count: number }>;
+  thisMonthCount: Array<{ count: number }>;
+}> => {
+  const userObjectId = new Types.ObjectId(userId);
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  const [result] = await VocabularyEntry.aggregate([
+    { $match: { userId: userObjectId } },
+    {
+      $facet: {
+        totalCount: [{ $count: "count" }],
+        byStatus: [
+          {
+            $group: {
+              _id: "$status",
+              count: { $sum: 1 },
+            },
+          },
+        ],
+        thisWeekCount: [
+          { $match: { createdAt: { $gte: sevenDaysAgo } } },
+          { $count: "count" },
+        ],
+        thisMonthCount: [
+          { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+          { $count: "count" },
+        ],
+      },
+    },
+  ]).exec();
+
+  return (
+    result || {
+      totalCount: [],
+      byStatus: [],
+      thisWeekCount: [],
+      thisMonthCount: [],
+    }
+  );
+};
+
+const getActivityStatsData = async (
+  userId: string,
+  days: number = 30,
+): Promise<{
+  wordsAdded: Array<{ _id: string; count: number }>;
+  wordsReviewed: Array<{ _id: string; count: number }>;
+}> => {
+  const userObjectId = new Types.ObjectId(userId);
+  const daysAgo = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  const [result] = await VocabularyEntry.aggregate([
+    {
+      $match: {
+        userId: userObjectId,
+        createdAt: { $gte: daysAgo },
+      },
+    },
+    {
+      $facet: {
+        wordsAdded: [
+          {
+            $group: {
+              _id: {
+                $dateToString: {
+                  format: "%Y-%m-%d",
+                  date: "$createdAt",
+                  timezone: "UTC",
+                },
+              },
+              count: { $sum: 1 },
+            },
+          },
+          { $sort: { _id: 1 } },
+        ],
+        wordsReviewed: [
+          {
+            $match: {
+              lastReviewedAt: { $exists: true, $ne: null },
+            },
+          },
+          {
+            $group: {
+              _id: {
+                $dateToString: {
+                  format: "%Y-%m-%d",
+                  date: "$lastReviewedAt",
+                  timezone: "UTC",
+                },
+              },
+              count: { $sum: 1 },
+            },
+          },
+          { $sort: { _id: 1 } },
+        ],
+      },
+    },
+  ]).exec();
+
+  return result || { wordsAdded: [], wordsReviewed: [] };
+};
+
+const getLanguageStatsData = async (
+  userId: string,
+): Promise<
+  Array<{
+    _id: string;
+    total: number;
+    byStatus: Array<string>;
+  }>
+> => {
+  const userObjectId = new Types.ObjectId(userId);
+
+  return VocabularyEntry.aggregate([
+    { $match: { userId: userObjectId } },
+    {
+      $group: {
+        _id: "$language",
+        total: { $sum: 1 },
+        byStatus: { $push: "$status" },
+      },
+    },
+    { $match: { total: { $gt: 0 } } },
+    { $sort: { total: -1 } },
+  ]).exec();
+};
+
 export const vocabularyRepository = {
   createEntry,
   findEntries,
@@ -213,5 +288,7 @@ export const vocabularyRepository = {
   findBookWords,
   updateEntry,
   deleteEntry,
-  getVocabularyStats,
+  getOverviewStatsData,
+  getActivityStatsData,
+  getLanguageStatsData,
 };

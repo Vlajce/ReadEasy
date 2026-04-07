@@ -52,3 +52,41 @@ export interface VocabularyStatsDTO {
   byLanguage: Record<string, number>;
   byDay: Record<string, number>;
 }
+
+// MVP Stats - Feature 1
+export interface OverviewStats {
+  totalWords: number;
+  byStatus: Record<"new" | "learning" | "mastered", number>;
+  wordsAdded: {
+    thisWeek: number;
+    thisMonth: number;
+  };
+}
+
+export interface ActivityStatsItem {
+  date: string;
+  wordsAdded: number;
+  wordsReviewed: number;
+}
+
+export interface ActivityStats {
+  activity: ActivityStatsItem[];
+}
+
+export interface LanguageStatsItem {
+  language: string;
+  total: number;
+  byStatus: Record<"new" | "learning" | "mastered", number>;
+}
+
+export interface LanguageStats {
+  languages: LanguageStatsItem[];
+}
+
+// Combined response for single endpoint
+export interface StatsResponse {
+  overview: OverviewStats;
+  activity: ActivityStats;
+  byLanguage: LanguageStats;
+}
+

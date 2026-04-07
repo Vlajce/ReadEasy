@@ -4,6 +4,7 @@ import {
   createVocabularySchema,
   updateVocabularySchema,
   findVocabularyQuerySchema,
+  activityStatsQuerySchema,
 } from "../validation/vocabulary.schema.js";
 import { asyncHandler } from "../utils/async.handler.js";
 import { sendSuccess } from "../utils/response.handler.js";
@@ -14,11 +15,13 @@ import type {
   PaginatedVocabularyDTO,
   VocabularyStatsDTO,
   BookVocabularyWordDTO,
+  StatsResponse,
 } from "../types/vocabulary.js";
 import {
   toVocabularyEntryDetailDTO,
   toVocabularyEntryDTO,
 } from "../mappers/vocabulary.mapper.js";
+import { vocabularyStatsService } from "../services/vocabulary-stats.service.js";
 
 const getVocabularyEntries = asyncHandler(
   async (req: Request, res: Response) => {
@@ -140,14 +143,6 @@ const deleteVocabularyEntry = asyncHandler(
   },
 );
 
-const vocabularyStats = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user?.userId;
-  const stats: VocabularyStatsDTO =
-    await vocabularyRepository.getVocabularyStats(userId!);
-
-  return sendSuccess(res, stats, "Vocabulary stats fetched successfully", 200);
-});
-
 const getBookWords = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const { bookId } = req.params;
@@ -170,12 +165,31 @@ const getBookWords = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
+// MVP Stats Endpoint (Feature 1)
+// Single combined endpoint that returns all stats in parallel
+
+const getStats = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const { days } = activityStatsQuerySchema.parse(req.query);
+  const stats: StatsResponse = await vocabularyStatsService.getStats(
+    userId,
+    days,
+  );
+
+  return sendSuccess<StatsResponse>(
+    res,
+    stats,
+    "Stats fetched successfully",
+    200,
+  );
+});
+
 export const vocabularyController = {
   getVocabularyEntries,
   getVocabularyEntryById,
   createVocabularyEntry,
   updateVocabularyEntry,
   deleteVocabularyEntry,
-  vocabularyStats,
   getBookWords,
+  getStats,
 };

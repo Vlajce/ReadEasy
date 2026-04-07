@@ -25,6 +25,12 @@ export interface IVocabularyEntry {
   meaning?: string | null;
   context?: string | null;
   position?: { startOffset: number; endOffset: number } | null;
+  reviewCount: number;
+  lastReviewedAt?: Date | null;
+  statusHistory?: Array<{
+    status: "new" | "learning" | "mastered";
+    changedAt: Date;
+  }>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -48,6 +54,22 @@ const bookSnapshotSchema = new Schema(
       type: String,
       required: true,
       trim: true,
+    },
+  },
+  { _id: false },
+);
+
+const statusHistoryItemSchema = new Schema(
+  {
+    status: {
+      type: String,
+      enum: ["new", "learning", "mastered"],
+      required: true,
+    },
+    changedAt: {
+      type: Date,
+      required: true,
+      default: Date.now,
     },
   },
   { _id: false },
@@ -104,6 +126,21 @@ const vocabularySchema = new Schema<IVocabularyEntry>(
       type: positionSchema,
       default: null,
     },
+    // Feature 1: Stats tracking (MVP)
+    reviewCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    lastReviewedAt: {
+      type: Date,
+      default: null,
+    },
+    // Future: Track status transitions (Feature 2)
+    statusHistory: {
+      type: [statusHistoryItemSchema],
+      default: [],
+    },
   },
 
   { timestamps: true },
@@ -142,6 +179,17 @@ vocabularySchema.index(
     default_language: "english",
     language_override: "none",
   },
+);
+
+// Stats indexes
+vocabularySchema.index(
+  { userId: 1, reviewCount: 1 },
+  { name: "idx_stats_reviewed" },
+);
+
+vocabularySchema.index(
+  { userId: 1, lastReviewedAt: -1 },
+  { name: "idx_stats_last_reviewed" },
 );
 
 export const VocabularyEntry = mongoose.model<IVocabularyEntry>(
