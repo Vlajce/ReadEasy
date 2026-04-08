@@ -13,6 +13,7 @@ import { Route as PublicRouteRouteImport } from './routes/_public/route'
 import { Route as ProtectedRouteRouteImport } from './routes/_protected/route'
 import { Route as PublicIndexRouteImport } from './routes/_public/index'
 import { Route as ProtectedVocabularyRouteImport } from './routes/_protected/vocabulary'
+import { Route as ProtectedStatsRouteImport } from './routes/_protected/stats'
 import { Route as ProtectedExploreRouteImport } from './routes/_protected/explore'
 import { Route as PublicAuthRouteRouteImport } from './routes/_public/_auth/route'
 import { Route as ProtectedLibraryRouteRouteImport } from './routes/_protected/library/route'
@@ -37,6 +38,11 @@ const PublicIndexRoute = PublicIndexRouteImport.update({
 const ProtectedVocabularyRoute = ProtectedVocabularyRouteImport.update({
   id: '/vocabulary',
   path: '/vocabulary',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedStatsRoute = ProtectedStatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
 const ProtectedExploreRoute = ProtectedExploreRouteImport.update({
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
   '/library': typeof ProtectedLibraryRouteRouteWithChildren
   '/explore': typeof ProtectedExploreRoute
+  '/stats': typeof ProtectedStatsRoute
   '/vocabulary': typeof ProtectedVocabularyRoute
   '/library/$bookId': typeof ProtectedLibraryBookIdRoute
   '/login': typeof PublicAuthLoginRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
   '/explore': typeof ProtectedExploreRoute
+  '/stats': typeof ProtectedStatsRoute
   '/vocabulary': typeof ProtectedVocabularyRoute
   '/library/$bookId': typeof ProtectedLibraryBookIdRoute
   '/login': typeof PublicAuthLoginRoute
@@ -100,6 +108,7 @@ export interface FileRoutesById {
   '/_protected/library': typeof ProtectedLibraryRouteRouteWithChildren
   '/_public/_auth': typeof PublicAuthRouteRouteWithChildren
   '/_protected/explore': typeof ProtectedExploreRoute
+  '/_protected/stats': typeof ProtectedStatsRoute
   '/_protected/vocabulary': typeof ProtectedVocabularyRoute
   '/_public/': typeof PublicIndexRoute
   '/_protected/library/$bookId': typeof ProtectedLibraryBookIdRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
     | '/'
     | '/library'
     | '/explore'
+    | '/stats'
     | '/vocabulary'
     | '/library/$bookId'
     | '/login'
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/explore'
+    | '/stats'
     | '/vocabulary'
     | '/library/$bookId'
     | '/login'
@@ -134,6 +145,7 @@ export interface FileRouteTypes {
     | '/_protected/library'
     | '/_public/_auth'
     | '/_protected/explore'
+    | '/_protected/stats'
     | '/_protected/vocabulary'
     | '/_public/'
     | '/_protected/library/$bookId'
@@ -175,6 +187,13 @@ declare module '@tanstack/react-router' {
       path: '/vocabulary'
       fullPath: '/vocabulary'
       preLoaderRoute: typeof ProtectedVocabularyRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/stats': {
+      id: '/_protected/stats'
+      path: '/stats'
+      fullPath: '/stats'
+      preLoaderRoute: typeof ProtectedStatsRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/explore': {
@@ -247,12 +266,14 @@ const ProtectedLibraryRouteRouteWithChildren =
 interface ProtectedRouteRouteChildren {
   ProtectedLibraryRouteRoute: typeof ProtectedLibraryRouteRouteWithChildren
   ProtectedExploreRoute: typeof ProtectedExploreRoute
+  ProtectedStatsRoute: typeof ProtectedStatsRoute
   ProtectedVocabularyRoute: typeof ProtectedVocabularyRoute
 }
 
 const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedLibraryRouteRoute: ProtectedLibraryRouteRouteWithChildren,
   ProtectedExploreRoute: ProtectedExploreRoute,
+  ProtectedStatsRoute: ProtectedStatsRoute,
   ProtectedVocabularyRoute: ProtectedVocabularyRoute,
 }
 
