@@ -95,12 +95,11 @@ function RouteComponent() {
   const searchParams = Route.useSearch();
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
-  const initialLanguage = searchParams.language ?? "all";
-
   const [statusFilter, setStatusFilter] = useState<"all" | VocabularyStatus>(
     "all",
   );
-  const [languageFilter, setLanguageFilter] = useState<string>(initialLanguage);
+  // languageFilter is now derived from searchParams, not local state
+  const languageFilter = searchParams.language ?? "all";
   const [colorFilter, setColorFilter] = useState<"all" | HighlightColor>("all");
 
   const vocabularyQuery = useInfiniteQuery(
@@ -117,9 +116,16 @@ function RouteComponent() {
   const { mutate: updateStatus, isPending: isUpdating } =
     useUpdateVocabularyStatus();
 
-  useEffect(() => {
-    setLanguageFilter(searchParams.language ?? "all");
-  }, [searchParams.language]);
+  // Helper function for resetting/setting language filter
+  const setLanguageFilter = (value: string) => {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        language: value === "all" ? undefined : value,
+        page: 1,
+      }),
+    });
+  };
 
   useEffect(() => {
     const node = loadMoreRef.current;
@@ -145,11 +151,7 @@ function RouteComponent() {
     observer.observe(node);
 
     return () => observer.disconnect();
-  }, [
-    vocabularyQuery.hasNextPage,
-    vocabularyQuery.isFetchingNextPage,
-    vocabularyQuery.fetchNextPage,
-  ]);
+  }, [vocabularyQuery]);
 
   const allPages = vocabularyQuery.data?.pages ?? [];
   const entries = allPages.flatMap((page) => page.data);
@@ -197,7 +199,6 @@ function RouteComponent() {
 
   function resetFilters() {
     setStatusFilter("all");
-    setLanguageFilter("all");
     setColorFilter("all");
 
     navigate({
@@ -210,9 +211,9 @@ function RouteComponent() {
   }
 
   const totalWords =
-    (stats?.byStatus.new ?? 0) +
-    (stats?.byStatus.learning ?? 0) +
-    (stats?.byStatus.mastered ?? 0);
+    (stats?.overview?.byStatus?.new ?? 0) +
+    (stats?.overview?.byStatus?.learning ?? 0) +
+    (stats?.overview?.byStatus?.mastered ?? 0);
 
   if (vocabularyQuery.isPending || statsQuery.isPending) {
     return (
@@ -224,12 +225,14 @@ function RouteComponent() {
     <div className="container mx-auto">
       <div className="mb-6 flex flex-wrap gap-2">
         <Badge variant="secondary">Total: {totalWords}</Badge>
-        <Badge variant="outline">New: {stats?.byStatus.new ?? 0}</Badge>
         <Badge variant="outline">
-          Learning: {stats?.byStatus.learning ?? 0}
+          New: {stats?.overview?.byStatus?.new ?? 0}
         </Badge>
         <Badge variant="outline">
-          Mastered: {stats?.byStatus.mastered ?? 0}
+          Learning: {stats?.overview?.byStatus?.learning ?? 0}
+        </Badge>
+        <Badge variant="outline">
+          Mastered: {stats?.overview?.byStatus?.mastered ?? 0}
         </Badge>
       </div>
 
@@ -301,7 +304,8 @@ function RouteComponent() {
                   <SelectGroup>
                     <SelectLabel>Language</SelectLabel>
                     <SelectItem value="all">All languages</SelectItem>
-                    {Object.keys(stats?.byLanguage ?? {})
+                    {(stats?.byLanguage?.languages ?? [])
+                      .map((lang) => lang.language)
                       .sort()
                       .map((language) => (
                         <SelectItem key={language} value={language}>

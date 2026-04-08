@@ -53,7 +53,6 @@ export interface VocabularyStatsDTO {
   byDay: Record<string, number>;
 }
 
-// MVP Stats - Feature 1
 export interface OverviewStats {
   totalWords: number;
   byStatus: Record<"new" | "learning" | "mastered", number>;
@@ -83,10 +82,8 @@ export interface LanguageStats {
   languages: LanguageStatsItem[];
 }
 
-// Combined response for single endpoint
 export interface StatsResponse {
   overview: OverviewStats;
   activity: ActivityStats;
   byLanguage: LanguageStats;
 }
-

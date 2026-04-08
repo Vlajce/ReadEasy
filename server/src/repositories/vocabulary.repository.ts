@@ -146,8 +146,6 @@ const findBookWords = async (
     .exec();
 };
 
-// Stats Aggregations (Feature 1: MVP Stats)
-
 const getOverviewStatsData = async (
   userId: string,
 ): Promise<{

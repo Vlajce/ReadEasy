@@ -29,8 +29,6 @@ export interface VocabularyEntry {
   };
 }
 
-
-
 export interface VocabularyEntryDetail {
   id: string;
   bookId: string;
@@ -62,4 +60,39 @@ export interface VocabularyStats {
   byStatus: Record<VocabularyStatus, number>;
   byLanguage: Record<string, number>;
   byDay: Record<string, number>;
+}
+
+export interface OverviewStats {
+  totalWords: number;
+  byStatus: Record<VocabularyStatus, number>;
+  wordsAdded: {
+    thisWeek: number;
+    thisMonth: number;
+  };
+}
+
+export interface ActivityStatsItem {
+  date: string;
+  wordsAdded: number;
+  wordsReviewed: number;
+}
+
+export interface ActivityStats {
+  activity: ActivityStatsItem[];
+}
+
+export interface LanguageStatsItem {
+  language: string;
+  total: number;
+  byStatus: Record<VocabularyStatus, number>;
+}
+
+export interface LanguageStats {
+  languages: LanguageStatsItem[];
+}
+
+export interface StatsResponse {
+  overview: OverviewStats;
+  activity: ActivityStats;
+  byLanguage: LanguageStats;
 }

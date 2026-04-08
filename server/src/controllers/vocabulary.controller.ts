@@ -165,9 +165,6 @@ const getBookWords = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
-// MVP Stats Endpoint (Feature 1)
-// Single combined endpoint that returns all stats in parallel
-
 const getStats = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const { days } = activityStatsQuerySchema.parse(req.query);
