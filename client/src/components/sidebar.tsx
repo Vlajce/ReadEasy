@@ -12,24 +12,19 @@ import {
   useSidebar,
 } from "./ui/sidebar";
 import { Link, useRouteContext } from "@tanstack/react-router";
-import {
-  BookOpen,
-  LogOut,
-  MoreVertical,
-  Library,
-  Bookmark,
-} from "lucide-react";
+import { BookOpen, LogOut, MoreVertical, Globe } from "lucide-react";
 import { useLogout } from "@/mutations/use-logout";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { useState } from "react";
+import { NativeLanguageDialog } from "./native-language-dialog";
 
 export function Sidebar() {
   return (
@@ -100,8 +95,10 @@ function SidebarLogo() {
 }
 
 function SidebarUserMenu() {
-  const { isMobile, setOpenMobile } = useSidebar();
+  const { isMobile } = useSidebar();
+  const { user } = useRouteContext({ from: "/_protected" });
   const { mutate: logout, isPending } = useLogout();
+  const [showLanguageDialog, setShowLanguageDialog] = useState(false);
 
   return (
     <SidebarFooter>
@@ -129,28 +126,10 @@ function SidebarUserMenu() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <Link
-                  to="/library"
-                  className="w-full"
-                  onClick={() => setOpenMobile(false)}
-                >
-                  <DropdownMenuItem>
-                    <Library />
-                    Library
-                  </DropdownMenuItem>
-                </Link>
-                <Link
-                  to="/vocabulary"
-                  className="w-full"
-                  onClick={() => setOpenMobile(false)}
-                >
-                  <DropdownMenuItem>
-                    <Bookmark />
-                    Vocabulary
-                  </DropdownMenuItem>
-                </Link>
-              </DropdownMenuGroup>
+              <DropdownMenuItem onClick={() => setShowLanguageDialog(true)}>
+                <Globe />
+                Change Language
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => logout()} disabled={isPending}>
                 <LogOut />
@@ -160,6 +139,14 @@ function SidebarUserMenu() {
           </DropdownMenu>
         </SidebarMenuItem>
       </SidebarMenu>
+
+      {/* Native Language Dialog */}
+      <NativeLanguageDialog
+        key={user?.nativeLanguage}
+        open={showLanguageDialog}
+        onOpenChange={setShowLanguageDialog}
+        isDismissible={true}
+      />
     </SidebarFooter>
   );
 }

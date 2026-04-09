@@ -31,7 +31,7 @@ export function StatsEmpty() {
           marginBottom: "8px",
         }}
       >
-        No vocabulary yet
+        Your progress will appear here!
       </h2>
       <p
         style={{
@@ -41,7 +41,7 @@ export function StatsEmpty() {
           maxWidth: "300px",
         }}
       >
-        Start reading and saving words to see your progress here
+        Start reading and saving words to get started.{" "}
       </p>
       <button
         onClick={() => navigate({ to: "/explore" })}

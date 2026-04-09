@@ -3,7 +3,13 @@ import type { UserDTO } from "../types/user.js";
 
 type UserMapperInput = Pick<
   IUser,
-  "_id" | "username" | "email" | "readingBooks" | "createdAt" | "updatedAt"
+  | "_id"
+  | "username"
+  | "email"
+  | "nativeLanguage"
+  | "readingBooks"
+  | "createdAt"
+  | "updatedAt"
 >;
 
 export const toUserDTO = (user: UserMapperInput): UserDTO => {
@@ -11,6 +17,7 @@ export const toUserDTO = (user: UserMapperInput): UserDTO => {
     id: user._id.toString(),
     username: user.username,
     email: user.email,
+    nativeLanguage: user.nativeLanguage,
     readingBooks: user.readingBooks?.map((rb) => ({
       id: rb.id.toString(),
       title: rb.title,

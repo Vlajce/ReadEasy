@@ -1,0 +1,43 @@
+// ISO 639-1 language code to full name mapping
+export const LANGUAGE_NAMES: Record<string, string> = {
+  en: "English",
+  sr: "Serbian",
+  es: "Spanish",
+  fr: "French",
+  de: "German",
+  it: "Italian",
+  pt: "Portuguese",
+  ru: "Russian",
+  ja: "Japanese",
+  zh: "Chinese",
+  ko: "Korean",
+  ar: "Arabic",
+  hi: "Hindi",
+  nl: "Dutch",
+  pl: "Polish",
+  tr: "Turkish",
+  vi: "Vietnamese",
+  th: "Thai",
+  id: "Indonesian",
+  sv: "Swedish",
+  no: "Norwegian",
+  da: "Danish",
+  fi: "Finnish",
+  hu: "Hungarian",
+  cs: "Czech",
+  sk: "Slovak",
+  uk: "Ukrainian",
+  el: "Greek",
+  he: "Hebrew",
+  ro: "Romanian",
+  bg: "Bulgarian",
+  hr: "Croatian",
+  sl: "Slovenian",
+  et: "Estonian",
+  lv: "Latvian",
+  lt: "Lithuanian",
+};
+
+export function getLanguageName(code: string): string {
+  return LANGUAGE_NAMES[code] || code.toUpperCase();
+}

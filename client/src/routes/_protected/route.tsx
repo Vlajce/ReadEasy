@@ -11,6 +11,9 @@ import {
   redirect,
   useMatches,
 } from "@tanstack/react-router";
+import { NativeLanguageDialog } from "@/components/native-language-dialog";
+import { useQuery } from "@tanstack/react-query";
+import { getCurrentUserQueryOptions } from "@/query-options/get-current-user-query-options";
 
 export const Route = createFileRoute("/_protected")({
   beforeLoad: ({ context: { auth } }) => {
@@ -25,6 +28,10 @@ export const Route = createFileRoute("/_protected")({
 });
 
 function SidebarLayout() {
+  // Get current user from query (reactive to updates)
+  const { data: user } = useQuery(getCurrentUserQueryOptions());
+  const hasNativeLanguage = !!user?.nativeLanguage;
+
   return (
     <SidebarProvider>
       <Sidebar />
@@ -34,6 +41,15 @@ function SidebarLayout() {
           <Outlet />
         </div>
       </SidebarInset>
+
+      {/* Language preference dialog - shown if user hasn't set native language */}
+      {/* Dialog is mandatory and cannot be dismissed without selecting language */}
+      <NativeLanguageDialog
+        open={!hasNativeLanguage}
+        onOpenChange={() => {
+          /* Dialog cannot be closed without selecting language */
+        }}
+      />
     </SidebarProvider>
   );
 }

@@ -9,10 +9,11 @@ export const updateUserSchema = z
       .trim()
       .optional(),
     email: z.email("Invalid email format").lowercase().trim().optional(),
+    nativeLanguage: z.string().trim().optional(),
   })
-  .refine((data) => data.username || data.email, {
+  .refine((data) => data.username || data.email || data.nativeLanguage, {
     message:
-      "At least one field (username or email) must be provided for update",
+      "At least one field (username, email, or nativeLanguage) must be provided for update",
   });
 
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;

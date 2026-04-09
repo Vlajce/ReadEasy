@@ -6,6 +6,7 @@ export interface IUser {
   email: string;
   password: string;
   refreshTokens: string[];
+  nativeLanguage?: string; // ISO 639-1 code (e.g., "sr", "en")
   readingBooks?: IReadingBook[];
   createdAt: Date;
   updatedAt: Date;
@@ -52,6 +53,10 @@ const userSchema = new Schema<IUser>(
       type: [String],
       select: false,
       default: [],
+    },
+    nativeLanguage: {
+      type: String,
+      trim: true,
     },
     readingBooks: {
       type: [readingBookSchema],

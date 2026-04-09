@@ -9,6 +9,7 @@ export interface User {
   id: string;
   username: string;
   email: string;
+  nativeLanguage?: string;
   readingBooks?: ReadingBook[];
   createdAt: string;
   updatedAt: string;
