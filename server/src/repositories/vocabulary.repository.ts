@@ -8,40 +8,60 @@ import type {
   UpdateVocabularyInput,
   FindVocabularyQueryInput,
 } from "../validation/vocabulary.schema.js";
-import type { VocabularyStatsDTO } from "../types/vocabulary.js";
-import { Book } from "../models/book.model.js";
-import { NotFoundError } from "../errors/not-found.error.js";
 
 const EXCLUDE_FIELDS = "-__v";
 
+type CreateEntryData = Omit<
+  IVocabularyEntry,
+  | "_id"
+  | "createdAt"
+  | "updatedAt"
+  | "reviewCount"
+  | "lastReviewedAt"
+  | "statusHistory"
+>;
+
 const createEntry = async (
-  userId: string,
-  data: CreateVocabularyInput,
+  data: CreateEntryData,
 ): Promise<IVocabularyEntry> => {
-  const book = await Book.findById(data.bookId)
-    .select("title author")
+  const doc = await VocabularyEntry.create(data);
+  return doc.toObject();
+};
+
+// AI flow — find existing entry by unique constraint
+const findEntry = async (
+  userId: string,
+  baseForm: string,
+  translation: string,
+  targetLanguage: string,
+): Promise<IVocabularyEntry | null> => {
+  return VocabularyEntry.findOne({
+    userId,
+    baseForm,
+    translation,
+    targetLanguage,
+  })
+    .select(EXCLUDE_FIELDS)
     .lean()
     .exec();
+};
 
-  if (!book) {
-    throw new NotFoundError("Book not found");
-  }
-
-  return VocabularyEntry.create({
-    userId,
-    bookId: data.bookId,
-    bookSnapshot: {
-      title: book.title,
-      author: book.author,
+// AI flow — append context sentence if not already present
+const appendContext = async (
+  entryId: string,
+  sentence: string,
+): Promise<IVocabularyEntry | null> => {
+  return VocabularyEntry.findOneAndUpdate(
+    {
+      _id: entryId,
+      contexts: { $ne: sentence },
     },
-    word: data.word,
-    language: data.language,
-    status: data.status,
-    highlightColor: data.highlightColor,
-    meaning: data.meaning ?? null,
-    context: data.context ?? null,
-    position: data.position ?? null,
-  });
+    { $push: { contexts: sentence } },
+    { new: true },
+  )
+    .select(EXCLUDE_FIELDS)
+    .lean()
+    .exec();
 };
 
 const findEntries = async (
@@ -281,6 +301,8 @@ const getLanguageStatsData = async (
 
 export const vocabularyRepository = {
   createEntry,
+  findEntry,
+  appendContext,
   findEntries,
   findEntryById,
   findBookWords,

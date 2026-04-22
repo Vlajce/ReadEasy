@@ -6,8 +6,9 @@ import {
   Link,
   Outlet,
   useNavigate,
-  useRouteContext,
 } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { getCurrentUserQueryOptions } from "@/query-options/get-current-user-query-options";
 import { CircleArrowDown, BookXIcon, Search } from "lucide-react";
 
 export const Route = createFileRoute("/_protected/library")({
@@ -39,9 +40,8 @@ function RouteComponent() {
 
 function BookCarouselSection() {
   const navigate = useNavigate({ from: Route.fullPath });
-  const {
-    user: { readingBooks },
-  } = useRouteContext({ from: "/_protected" });
+  const { data: user } = useQuery(getCurrentUserQueryOptions());
+  const readingBooks = user?.readingBooks || [];
   const { mutate: removeFromReadingList } = useRemoveFromReadingList();
 
   const handleBookCardClick = (bookId: string) => {
@@ -52,7 +52,7 @@ function BookCarouselSection() {
     });
   };
 
-  return readingBooks && readingBooks.length > 0 ? (
+  return readingBooks.length > 0 ? (
     <>
       <BooksCarousel
         books={readingBooks}

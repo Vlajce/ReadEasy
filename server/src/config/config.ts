@@ -10,6 +10,7 @@ const requiredEnvVars = [
   "JWT_ACCESS_EXPIRES_IN",
   "JWT_REFRESH_SECRET",
   "JWT_REFRESH_EXPIRES_IN",
+  "OPENAI_API_KEY",
 ];
 
 requiredEnvVars.forEach((key) => {
@@ -33,6 +34,9 @@ const config = {
       secret: process.env.JWT_REFRESH_SECRET as string,
       expiresIn: process.env.JWT_REFRESH_EXPIRES_IN as string,
     },
+  },
+  openai: {
+    apiKey: process.env.OPENAI_API_KEY as string,
   },
   rateLimit: {
     enabled: process.env.RATE_LIMIT_ENABLED === "true",

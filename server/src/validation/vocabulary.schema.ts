@@ -2,63 +2,76 @@ import { z } from "zod";
 
 const objectIdRegex = /^[a-fA-F0-9]{24}$/;
 
-export const positionSchema = z
-  .object({
-    startOffset: z.number().int().min(0),
-    endOffset: z.number().int().min(0),
-  })
-  .refine((p) => p.endOffset >= p.startOffset, {
-    message: "endOffset must be greater than or equal to startOffset",
-  });
-
 export const createVocabularySchema = z.object({
   word: z
     .string()
-    .min(2)
+    .min(1)
     .max(100)
     .transform((val) => val.trim().toLowerCase()),
-  meaning: z
+  baseForm: z
     .string()
-    .min(2)
-    .max(500)
-    .transform((v) => v.trim().toLowerCase())
-    .optional(),
-  bookId: z.string().regex(objectIdRegex),
-  context: z.string().min(2).max(500).optional(),
-  position: positionSchema.optional(),
+    .min(1)
+    .max(100)
+    .transform((val) => val.trim().toLowerCase()),
+  translation: z.string().min(1).max(500),
+  targetLanguage: z
+    .string()
+    .trim()
+    .transform((s) => s.toLowerCase())
+    .refine((s) => /^[a-z]{2}$/.test(s), {
+      message: "Target language must be ISO 639-1 code (e.g., 'en', 'fr')",
+    }),
   language: z
     .string()
     .trim()
     .transform((s) => s.toLowerCase())
-    .refine((s) => !s || /^[a-z]{2}$/.test(s), {
+    .refine((s) => /^[a-z]{2}$/.test(s), {
       message: "Language must be ISO 639-1 code (e.g., 'en', 'fr')",
     }),
-  status: z.enum(["new", "learning", "mastered"]).optional().default("new"),
+  partOfSpeech: z
+    .string()
+    .min(1)
+    .max(50)
+    .transform((val) => val.trim().toLowerCase()),
+  bookId: z.string().regex(objectIdRegex),
+  contexts: z.array(z.string().trim().min(1)).min(1),
+  status: z.enum(["new", "learning", "mastered"]).default("new"),
   highlightColor: z
     .enum(["yellow", "green", "blue", "pink", "purple"])
-    .optional()
     .default("yellow"),
 });
 
 export const updateVocabularySchema = z.object({
-  meaning: z
+  baseForm: z
     .string()
-    .min(2)
+    .min(1)
+    .max(100)
+    .transform((val) => val.trim().toLowerCase())
+    .optional(),
+  translation: z
+    .string()
+    .min(1)
     .max(500)
-    .transform((v) => v.trim().toLowerCase())
+    .transform((val) => val.trim())
     .optional(),
-  context: z.string().min(2).max(500).optional(),
-  status: z.enum(["new", "learning", "mastered"]).optional(),
-  highlightColor: z
-    .enum(["yellow", "green", "blue", "pink", "purple"])
-    .optional(),
-  language: z
+  targetLanguage: z
     .string()
     .trim()
     .transform((s) => s.toLowerCase())
-    .refine((s) => !s || /^[a-z]{2}$/.test(s), {
-      message: "Language must be ISO 639-1 code (e.g., 'en', 'fr')",
+    .refine((s) => /^[a-z]{2}$/.test(s), {
+      message: "Target language must be ISO 639-1 code (e.g., 'en', 'fr')",
     })
+    .optional(),
+  partOfSpeech: z
+    .string()
+    .min(1)
+    .max(50)
+    .transform((val) => val.trim().toLowerCase())
+    .optional(),
+  contexts: z.array(z.string().trim().min(1)).min(1).optional(),
+  status: z.enum(["new", "learning", "mastered"]).optional(),
+  highlightColor: z
+    .enum(["yellow", "green", "blue", "pink", "purple"])
     .optional(),
 });
 
@@ -86,12 +99,6 @@ export const findVocabularyQuerySchema = z.object({
     .optional(),
 });
 
-export type CreateVocabularyInput = z.infer<typeof createVocabularySchema>;
-export type UpdateVocabularyInput = z.infer<typeof updateVocabularySchema>;
-export type FindVocabularyQueryInput = z.infer<
-  typeof findVocabularyQuerySchema
->;
-
 // Stats Validation Schemas
 export const activityStatsQuerySchema = z.object({
   days: z.coerce
@@ -103,4 +110,24 @@ export const activityStatsQuerySchema = z.object({
     }),
 });
 
+// Translation & AI Integration Schemas
+export const translateAndSaveSchema = z.object({
+  word: z.string().trim().min(1).max(100),
+  sentence: z.string().trim().min(1).max(500),
+  bookId: z.string().regex(objectIdRegex),
+});
+
+export const aiTranslationResponseSchema = z.object({
+  translation: z.string().trim().min(1),
+  baseForm: z.string().trim().min(1),
+  partOfSpeech: z.string().trim().min(1).default("unknown"),
+});
+
+export type CreateVocabularyInput = z.infer<typeof createVocabularySchema>;
+export type UpdateVocabularyInput = z.infer<typeof updateVocabularySchema>;
+export type FindVocabularyQueryInput = z.infer<
+  typeof findVocabularyQuerySchema
+>;
 export type ActivityStatsQueryInput = z.infer<typeof activityStatsQuerySchema>;
+export type TranslateAndSaveInput = z.infer<typeof translateAndSaveSchema>;
+export type AiTranslationResponse = z.infer<typeof aiTranslationResponseSchema>;

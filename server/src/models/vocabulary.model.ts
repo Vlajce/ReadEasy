@@ -16,15 +16,17 @@ export interface IVocabularyEntry {
   bookId: mongoose.Types.ObjectId;
   word: string;
   language: string;
+  baseForm: string;
+  translation: string;
+  targetLanguage: string;
+  partOfSpeech: string;
+  contexts: string[];
   status: "new" | "learning" | "mastered";
   highlightColor: HighlightColor;
   bookSnapshot: {
     title: string;
     author: string;
   };
-  meaning?: string | null;
-  context?: string | null;
-  position?: { startOffset: number; endOffset: number } | null;
   reviewCount: number;
   lastReviewedAt?: Date | null;
   statusHistory?: Array<{
@@ -34,14 +36,6 @@ export interface IVocabularyEntry {
   createdAt: Date;
   updatedAt: Date;
 }
-
-const positionSchema = new Schema(
-  {
-    startOffset: { type: Number, min: 0 },
-    endOffset: { type: Number, min: 0 },
-  },
-  { _id: false },
-);
 
 const bookSnapshotSchema = new Schema(
   {
@@ -100,6 +94,34 @@ const vocabularySchema = new Schema<IVocabularyEntry>(
       minlength: 2,
       maxlength: 2,
     },
+    baseForm: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
+    },
+    translation: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    targetLanguage: {
+      type: String,
+      required: true,
+      lowercase: true,
+      minlength: 2,
+      maxlength: 2,
+    },
+    partOfSpeech: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
+    },
+    contexts: {
+      type: [String],
+      default: [],
+    },
     status: {
       type: String,
       enum: ["new", "learning", "mastered"],
@@ -113,18 +135,6 @@ const vocabularySchema = new Schema<IVocabularyEntry>(
     bookSnapshot: {
       type: bookSnapshotSchema,
       required: true,
-    },
-    meaning: {
-      type: String,
-      default: null,
-      maxlength: 500,
-      lowercase: true,
-      trim: true,
-    },
-    context: { type: String, default: null, maxlength: 500, trim: true },
-    position: {
-      type: positionSchema,
-      default: null,
     },
     // Feature 1: Stats tracking (MVP)
     reviewCount: {
@@ -147,8 +157,8 @@ const vocabularySchema = new Schema<IVocabularyEntry>(
 );
 
 vocabularySchema.index(
-  { userId: 1, word: 1, language: 1 },
-  { unique: true, name: "idx_unique_word" },
+  { userId: 1, baseForm: 1, translation: 1, targetLanguage: 1 },
+  { unique: true, name: "idx_unique_entry" },
 );
 
 vocabularySchema.index({ userId: 1, createdAt: -1 }, { name: "idx_feed" });
@@ -172,10 +182,10 @@ vocabularySchema.index(
 vocabularySchema.index({ userId: 1, word: 1 }, { name: "idx_user_word" });
 
 vocabularySchema.index(
-  { word: "text", context: "text" },
+  { word: "text", contexts: "text" },
   {
     name: "idx_text_search",
-    weights: { word: 10, context: 1 },
+    weights: { word: 10, contexts: 1 },
     default_language: "english",
     language_override: "none",
   },
