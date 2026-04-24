@@ -57,7 +57,7 @@ const appendContext = async (
       contexts: { $ne: sentence },
     },
     { $push: { contexts: sentence } },
-    { new: true },
+    { returnDocument: "after" },
   )
     .select(EXCLUDE_FIELDS)
     .lean()

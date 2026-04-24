@@ -111,7 +111,7 @@ export const activityStatsQuerySchema = z.object({
 });
 
 // Translation & AI Integration Schemas
-export const translateAndSaveSchema = z.object({
+export const translationRequestSchema = z.object({
   word: z.string().trim().min(1).max(100),
   sentence: z.string().trim().min(1).max(500),
   bookId: z.string().regex(objectIdRegex),
@@ -123,11 +123,39 @@ export const aiTranslationResponseSchema = z.object({
   partOfSpeech: z.string().trim().min(1).default("unknown"),
 });
 
+export const saveVocabularySchema = z.object({
+  bookId: z.string().regex(objectIdRegex),
+  sentence: z.string().trim().min(1).max(500),
+  word: z
+    .string()
+    .trim()
+    .min(1)
+    .max(100)
+    .transform((val) => val.toLowerCase()),
+  baseForm: z
+    .string()
+    .trim()
+    .min(1)
+    .max(100)
+    .transform((val) => val.toLowerCase()),
+  translation: z.string().trim().min(1).max(500),
+  partOfSpeech: z
+    .string()
+    .trim()
+    .min(1)
+    .max(50)
+    .transform((val) => val.toLowerCase()),
+  highlightColor: z
+    .enum(["yellow", "green", "blue", "pink", "purple"])
+    .optional(),
+});
+
 export type CreateVocabularyInput = z.infer<typeof createVocabularySchema>;
 export type UpdateVocabularyInput = z.infer<typeof updateVocabularySchema>;
 export type FindVocabularyQueryInput = z.infer<
   typeof findVocabularyQuerySchema
 >;
 export type ActivityStatsQueryInput = z.infer<typeof activityStatsQuerySchema>;
-export type TranslateAndSaveInput = z.infer<typeof translateAndSaveSchema>;
 export type AiTranslationResponse = z.infer<typeof aiTranslationResponseSchema>;
+export type TranslationRequestInput = z.infer<typeof translationRequestSchema>;
+export type SaveVocabularyInput = z.infer<typeof saveVocabularySchema>;

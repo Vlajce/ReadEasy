@@ -4,6 +4,7 @@ import {
   updateVocabularySchema,
   findVocabularyQuerySchema,
   activityStatsQuerySchema,
+  saveVocabularySchema,
 } from "../validation/vocabulary.schema.js";
 import { asyncHandler } from "../utils/async.handler.js";
 import { sendSuccess } from "../utils/response.handler.js";
@@ -67,6 +68,19 @@ const createVocabularyEntry = asyncHandler(
     );
   },
 );
+
+const saveVocabularyEntry = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const parsed = saveVocabularySchema.parse(req.body);
+  const entry = await vocabularyService.saveVocabulary(userId, parsed);
+
+  return sendSuccess(
+    res,
+    toVocabularyEntryDetailDTO(entry),
+    "Vocabulary saved successfully",
+    200,
+  );
+});
 
 const updateVocabularyEntry = asyncHandler(
   async (req: Request, res: Response) => {
@@ -133,6 +147,7 @@ export const vocabularyController = {
   getVocabularyEntries,
   getVocabularyEntryById,
   createVocabularyEntry,
+  saveVocabularyEntry,
   updateVocabularyEntry,
   deleteVocabularyEntry,
   getBookWords,

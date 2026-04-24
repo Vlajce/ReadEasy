@@ -1,14 +1,16 @@
 import { Book } from "../models/book.model.js";
+import { userRepository } from "../repositories/user.repository.js";
 import { NotFoundError } from "../errors/not-found.error.js";
 import { ConflictError } from "../errors/conflict.error.js";
+import { BadRequestError } from "../errors/bad-request.error.js";
 import { isMongoDuplicateError } from "../utils/db.errors.js";
 import { vocabularyRepository } from "../repositories/vocabulary.repository.js";
-import crypto from "crypto";
 import type { IVocabularyEntry } from "../models/vocabulary.model.js";
 import type {
   CreateVocabularyInput,
   UpdateVocabularyInput,
   FindVocabularyQueryInput,
+  SaveVocabularyInput,
 } from "../validation/vocabulary.schema.js";
 import type {
   OverviewStats,
@@ -18,9 +20,7 @@ import type {
   LanguageStatsItem,
   StatsResponse,
 } from "../types/vocabulary.js";
-import { translationRepository } from "../repositories/translation.repository.js";
-import type { ITranslation } from "../models/translation.model.js";
-import { translationService } from "./translation.service.js";
+import { normalizeSentence, normalizeWord } from "../utils/normalization.js";
 
 // ─── CRUD ────────────────────────────────────────────────────────────────────
 
@@ -108,6 +108,84 @@ const getBookWords = async (
   bookId: string,
 ): Promise<{ word: string; highlightColor: string }[]> => {
   return vocabularyRepository.findBookWords(userId, bookId);
+};
+
+const saveVocabulary = async (
+  userId: string,
+  data: SaveVocabularyInput,
+): Promise<IVocabularyEntry> => {
+  const user = await userRepository.findById(userId);
+  if (!user) throw new NotFoundError("User not found");
+
+  const targetLanguage = user.nativeLanguage?.trim().toLowerCase();
+  if (!targetLanguage) {
+    throw new BadRequestError(
+      "Native language must be set before saving vocabulary",
+    );
+  }
+
+  const book = await Book.findById(data.bookId)
+    .select("title author language")
+    .lean()
+    .exec();
+
+  if (!book) throw new NotFoundError("Book not found");
+
+  const normalizedWord = normalizeWord(data.word);
+  const normalizedBaseForm = normalizeWord(data.baseForm);
+  const normalizedSentence = normalizeSentence(data.sentence);
+  const translation = data.translation.trim();
+  const partOfSpeech = data.partOfSpeech.trim().toLowerCase();
+
+  const existingEntry = await vocabularyRepository.findEntry(
+    userId,
+    normalizedBaseForm,
+    translation,
+    targetLanguage,
+  );
+
+  if (existingEntry) {
+    const updated = await vocabularyRepository.appendContext(
+      String(existingEntry._id),
+      normalizedSentence,
+    );
+
+    return updated ?? existingEntry;
+  }
+
+  try {
+    return await vocabularyRepository.createEntry({
+      userId: userId as any,
+      bookId: book._id,
+      word: normalizedWord,
+      baseForm: normalizedBaseForm,
+      translation,
+      targetLanguage,
+      language: book.language,
+      partOfSpeech,
+      bookSnapshot: { title: book.title, author: book.author },
+      contexts: [normalizedSentence],
+      status: "new",
+      highlightColor: data.highlightColor ?? "yellow",
+    });
+  } catch (error) {
+    if (isMongoDuplicateError(error)) {
+      const existing = await vocabularyRepository.findEntry(
+        userId,
+        normalizedBaseForm,
+        translation,
+        targetLanguage,
+      );
+      if (existing) {
+        const updated = await vocabularyRepository.appendContext(
+          String(existing._id),
+          normalizedSentence,
+        );
+        return updated ?? existing;
+      }
+    }
+    throw error;
+  }
 };
 
 // ─── STATS ───────────────────────────────────────────────────────────────────
@@ -212,19 +290,13 @@ const getStats = async (
 
 // ─── AI FLOW ─────────────────────────────────────────────────────────────────
 
-// TODO: translateAndSave — implemented after translation.service is ready
-
-const translateAndSave = async (
-  word: string,
-  sentence: string,
-  sourceLanguage: string,
-  targetLanguage: string,
-): Promise<ITranslation> => {};
+// Translation flow is handled separately via translation.controller/service.
 
 export const vocabularyService = {
   getEntries,
   getEntryById,
   createEntry,
+  saveVocabulary,
   updateEntry,
   deleteEntry,
   getBookWords,

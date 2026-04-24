@@ -9,6 +9,7 @@ const {
   getVocabularyEntries,
   getVocabularyEntryById,
   createVocabularyEntry,
+  saveVocabularyEntry,
   updateVocabularyEntry,
   deleteVocabularyEntry,
   getBookWords,
@@ -28,6 +29,7 @@ router.use(isAuthenticated);
 // List and create
 router.get("/", getVocabularyEntries);
 router.post("/", strictLimiter, createVocabularyEntry);
+router.post("/save", strictLimiter, saveVocabularyEntry);
 
 // Stats route (must be before :id catch-all)
 router.get("/stats", getStats);

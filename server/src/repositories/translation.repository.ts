@@ -11,7 +11,7 @@ const findByCacheKey = async (
   return Translation.findOneAndUpdate(
     { cacheKey },
     { $inc: { hitCount: 1 } },
-    { new: true },
+    { returnDocument: "after" },
   )
     .lean()
     .exec();

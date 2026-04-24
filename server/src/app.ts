@@ -4,6 +4,7 @@ import { authRoutes } from "./routes/auth.routes.js";
 import { userRoutes } from "./routes/user.routes.js";
 import { bookRoutes } from "./routes/book.routes.js";
 import { vocabularyRoutes } from "./routes/vocabulary.routes.js";
+import { translationRoutes } from "./routes/translation.routes.js";
 import { corsConfig } from "./config/cors.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
 import { globalLimiter } from "./middlewares/rate-limit.middleware.js";
@@ -21,6 +22,7 @@ app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/books", bookRoutes);
 app.use("/vocabulary", vocabularyRoutes);
+app.use("/translation", translationRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({ status: "API is healthy 🚀" });
