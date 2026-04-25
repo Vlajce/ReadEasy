@@ -144,6 +144,9 @@ function Popover({ book }: { book: BookDetail }) {
   const [editedTranslation, setEditedTranslation] = useState("");
   const [selectedColor, setSelectedColor] = useState<HighlightColor>("yellow");
 
+  const popoverWidthClass =
+    state === "translated" ? "w-72" : state === "saved" ? "w-68" : "w-48";
+
   const handleTranslate = () => {
     if (!selectedText.trim()) return;
 
@@ -196,10 +199,15 @@ function Popover({ book }: { book: BookDetail }) {
   };
 
   return (
-    <div className="flex flex-col gap-3 p-2 w-70">
+    <div
+      className={cn(
+        "flex flex-col gap-3 p-2 transition-[width] duration-200",
+        popoverWidthClass,
+      )}
+    >
       <div className="text-center">
-        <p className="text-xs text-muted-foreground">Selected word</p>
-        <p className="text-sm font-semibold text-wrap" title={selectedText}>
+        <p className="text-sm text-muted-foreground">Selected word</p>
+        <p className="text-base font-semibold text-wrap" title={selectedText}>
           &ldquo;{selectedText}&rdquo;
         </p>
       </div>
@@ -209,7 +217,7 @@ function Popover({ book }: { book: BookDetail }) {
           size="sm"
           variant="ghost"
           onClick={handleTranslate}
-          className="text-xs font-medium hover:bg-muted-foreground/10"
+          className="text-sm font-medium hover:bg-muted-foreground/10"
         >
           Translate
         </Button>
@@ -225,29 +233,29 @@ function Popover({ book }: { book: BookDetail }) {
         <>
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-1">
-              <p className="text-xs text-muted-foreground">Translation</p>
+              <p className="text-sm text-muted-foreground">Translation</p>
               <Input
                 value={editedTranslation}
                 onChange={(e) => setEditedTranslation(e.target.value)}
-                className="h-7 text-xs md:text-xs p-1.5 pt-1 bg-muted-foreground/5 inset-shadow-sm shadow-none"
+                className="h-8 text-sm md:text-sm p-1.5 pt-1 bg-muted-foreground/5 inset-shadow-sm shadow-none"
               />
             </div>
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">Base form</p>
-              <p className="text-xs font-medium">
+              <p className="text-sm text-muted-foreground">Base form</p>
+              <p className="text-sm font-medium">
                 {translationResult.baseForm}
               </p>
             </div>
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">Part of speech</p>
-              <p className="text-xs font-medium">
+              <p className="text-sm text-muted-foreground">Part of speech</p>
+              <p className="text-sm font-medium">
                 {translationResult.partOfSpeech}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-1.5">
-            <div className="flex items-center gap-1 px-1">
+          <div className="flex items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-1">
               {HIGHLIGHT_COLORS.map(({ value, label }) => (
                 <button
                   key={value}
@@ -264,13 +272,13 @@ function Popover({ book }: { book: BookDetail }) {
                 />
               ))}
             </div>
-            <div className="w-px h-5 bg-border" />
+            <div className="h-6 shrink-0 border-l border-foreground/20" />
             <Button
               size="sm"
               variant="ghost"
               onClick={handleSave}
               disabled={isSaving || !editedTranslation.trim()}
-              className="text-xs ml-auto font-medium hover:bg-muted-foreground/10"
+              className="ml-0.5 shrink-0 text-sm font-medium hover:bg-muted-foreground/10"
             >
               {isSaving ? (
                 <Loader2 className="size-3 animate-spin" />
@@ -286,33 +294,34 @@ function Popover({ book }: { book: BookDetail }) {
         <>
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">Translation</p>
-              <p className="text-xs font-medium">{savedEntry.translation}</p>
+              <p className="text-sm text-muted-foreground">Translation</p>
+              <p className="text-sm font-medium">{savedEntry.translation}</p>
             </div>
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">Base form</p>
-              <p className="text-xs font-medium">{savedEntry.baseForm}</p>
+              <p className="text-sm text-muted-foreground">Base form</p>
+              <p className="text-sm font-medium">{savedEntry.baseForm}</p>
             </div>
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">Part of speech</p>
-              <p className="text-xs font-medium">{savedEntry.partOfSpeech}</p>
+              <p className="text-sm text-muted-foreground">Part of speech</p>
+              <p className="text-sm font-medium">{savedEntry.partOfSpeech}</p>
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-1.5 pt-1">
-            <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 pt-1">
+            <div className="flex shrink-0 items-center gap-1.5 ">
               <div
                 className={cn(
                   "size-2 rounded-full vocab-highlight-swatch",
                   `vocab-highlight-swatch-${savedEntry.highlightColor}`,
                 )}
               />
-              <p className="text-xs text-muted-foreground">Already saved</p>
+              <p className="text-sm text-muted-foreground">Already saved</p>
             </div>
+            <div className="h-6 shrink-0 border-l border-foreground/20" />
             <Button
               size="sm"
               variant="ghost"
-              className="text-xs font-medium hover:bg-muted-foreground/10"
+              className="ml-0.5 shrink-0 text-sm font-medium hover:bg-muted-foreground/10"
               asChild
             >
               <Link to="/vocabulary">View in vocabulary</Link>
