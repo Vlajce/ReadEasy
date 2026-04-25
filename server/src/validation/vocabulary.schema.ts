@@ -112,7 +112,7 @@ export const activityStatsQuerySchema = z.object({
 
 // Translation & AI Integration Schemas
 export const translationRequestSchema = z.object({
-  word: z.string().trim().min(1).max(100),
+  word: z.string().trim().min(1).max(40),
   sentence: z.string().trim().min(1).max(500),
   bookId: z.string().regex(objectIdRegex),
 });
@@ -130,7 +130,7 @@ export const saveVocabularySchema = z.object({
     .string()
     .trim()
     .min(1)
-    .max(100)
+    .max(40)
     .transform((val) => val.toLowerCase()),
   baseForm: z
     .string()

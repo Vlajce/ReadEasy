@@ -12,6 +12,10 @@ const buildTranslationMessages = (input: {
 }): OpenAI.Chat.ChatCompletionMessageParam[] => {
   const { word, sentence, sourceLanguage, targetLanguage } = input;
 
+  const focusRule = `- translate ONLY the exact expression "${word}" — nothing more, nothing less
+- the output translation must correspond only to "${word}", not to any other words in the sentence
+- the sentence exists only to clarify the meaning and context of "${word}"`;
+
   return [
     {
       role: "system",
@@ -28,13 +32,20 @@ Translate and analyze this word for a ${targetLanguage} speaker.
 Respond ONLY with a valid JSON object in exactly this format:
 {
   "translation": "the translation of the word in ${targetLanguage}",
-  "baseForm": "the base/dictionary form of the word in ${sourceLanguage}",
-  "partOfSpeech": "noun | verb | adjective | adverb | pronoun | preposition | conjunction | interjection | other (based on how the word is used in this specific sentence)"
+  "baseForm": "the base/dictionary form of the word in ${sourceLanguage} — MUST be in ${sourceLanguage}, never translated into ${targetLanguage}",
+  "partOfSpeech": "noun | verb | adjective | adverb | pronoun | preposition | conjunction | interjection | other"
 }
 
 Rules:
-- translation: the most contextually accurate translation given the sentence
-- baseForm: the lemma/infinitive (e.g. "running" → "run", "better" → "good")
+- translation: translate the word as it would naturally appear in a fluent ${targetLanguage} sentence
+  - consider the full sentence context to determine the most natural form
+  - avoid unnatural literal translations — prioritize how a native ${targetLanguage} speaker would naturally express this word
+${focusRule}
+- baseForm: the lemma/infinitive of the word in ${sourceLanguage}
+  - MUST always be in ${sourceLanguage}, never in ${targetLanguage}
+  - for verbs: use infinitive
+  - for nouns: use nominative singular
+  - for adjectives: use base form
 - partOfSpeech: based on how the word is used in this specific sentence
 - If partOfSpeech is unclear, use "other"`,
     },
