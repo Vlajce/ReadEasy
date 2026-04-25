@@ -2,6 +2,7 @@ export type HighlightColor = "yellow" | "green" | "blue" | "pink" | "purple";
 
 export interface VocabularyEntryDTO {
   id: string;
+  bookId: string;
   word: string;
   baseForm: string;
   translation: string;

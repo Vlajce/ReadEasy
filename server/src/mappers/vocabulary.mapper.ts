@@ -27,6 +27,7 @@ export const toVocabularyEntryDTO = (
   entry: VocabularyMapperInput,
 ): VocabularyEntryDTO => ({
   id: entry._id.toString(),
+  bookId: entry.bookId.toString(),
   word: entry.word,
   baseForm: entry.baseForm,
   translation: entry.translation,

@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import { getEmoji, getLanguage, getName } from "language-flag-colors";
-import { Search, Trash2, BookOpen } from "lucide-react";
+import { Search, Trash2, BookOpen, Pencil, ArrowUpRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,12 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { VocabularyFilters } from "@/components/ui/vocabulary-filters";
 
 import { vocabularySearchSchema } from "@/schemas/vocabulary";
@@ -30,8 +36,14 @@ import { getInfiniteVocabularyQueryOptions } from "@/query-options/get-infinite-
 import { getVocabularyStatsQueryOptions } from "@/query-options/get-vocabulary-stats-query-options";
 import { useDeleteVocabulary } from "@/mutations/use-delete-vocabulary";
 import { useUpdateVocabularyStatus } from "@/mutations/use-update-vocabulary-status";
-import type { HighlightColor, VocabularyStatus } from "@/types/vocabulary";
+import type {
+  HighlightColor,
+  VocabularyEntryDetail,
+  VocabularyStatus,
+} from "@/types/vocabulary";
 import { cn } from "@/lib/utils";
+import { apiClient } from "@/lib/api-client";
+import { toast } from "sonner";
 
 const STATUS_ORDER: VocabularyStatus[] = ["new", "learning", "mastered"];
 const ALL_STATUSES: VocabularyStatus[] = ["new", "learning", "mastered"];
@@ -182,10 +194,42 @@ function VocabularyContainer({
   onMove: (id: string, status: VocabularyStatus) => void;
   isBusy: boolean;
 }) {
+  const navigate = useNavigate({ from: Route.fullPath });
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const translationInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [editingTranslationId, setEditingTranslationId] = useState<
+    string | null
+  >(null);
+  const [translationDraft, setTranslationDraft] = useState("");
+  const [translationOverrides, setTranslationOverrides] = useState<
+    Record<string, string>
+  >({});
+
+  const { mutate: updateTranslation, isPending: isUpdatingTranslation } =
+    useMutation({
+      mutationFn: ({ id, translation }: { id: string; translation: string }) =>
+        apiClient.put<VocabularyEntryDetail>(`/vocabulary/${id}`, {
+          translation,
+        }),
+      onSuccess: (_data, variables, _onMutateResult, context) => {
+        context.client.invalidateQueries({ queryKey: ["vocabulary"] });
+        toast.success(`Translation updated for "${variables.translation}"`);
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to update translation");
+      },
+    });
+
   const vocabularyQuery = useInfiniteQuery(
     getInfiniteVocabularyQueryOptions({ limit: 20, search, language }),
   );
+
+  useEffect(() => {
+    if (!editingTranslationId) return;
+    translationInputRef.current?.focus();
+    translationInputRef.current?.select();
+  }, [editingTranslationId]);
 
   useEffect(() => {
     const node = loadMoreRef.current;
@@ -234,6 +278,49 @@ function VocabularyContainer({
 
   const sectionsToRender =
     statusFilter === "all" ? STATUS_ORDER : [statusFilter];
+
+  const startTranslationEdit = (entryId: string, currentValue: string) => {
+    setEditingTranslationId(entryId);
+    setTranslationDraft(currentValue);
+  };
+
+  const cancelTranslationEdit = () => {
+    setEditingTranslationId(null);
+    setTranslationDraft("");
+  };
+
+  const saveTranslationEdit = (entryId: string, currentValue: string) => {
+    const nextValue = translationDraft.trim();
+    const prevValue = currentValue.trim();
+
+    if (!nextValue || nextValue === prevValue) {
+      cancelTranslationEdit();
+      return;
+    }
+
+    updateTranslation(
+      { id: entryId, translation: nextValue },
+      {
+        onSuccess: (updated) => {
+          setTranslationOverrides((prev) => ({
+            ...prev,
+            [entryId]: updated.translation,
+          }));
+          cancelTranslationEdit();
+        },
+      },
+    );
+  };
+
+  const openLibraryBook = (entry: {
+    bookId: string;
+    anchorId?: string;
+    location?: { anchorId?: string };
+  }) => {
+    const anchorId = entry.location?.anchorId ?? entry.anchorId;
+    const hash = anchorId ? `#${encodeURIComponent(anchorId)}` : "";
+    navigate({ to: `/library/${entry.bookId}${hash}` });
+  };
 
   if (vocabularyQuery.isPending) {
     return (
@@ -301,37 +388,119 @@ function VocabularyContainer({
                       </CardHeader>
 
                       <CardContent className="space-y-3">
-                        {entry.meaning || entry.context ? (
-                          <>
-                            {entry.meaning && (
-                              <p className="text-sm">
-                                <span className="font-medium">
-                                  Translation:
-                                </span>{" "}
-                                {entry.meaning}
-                              </p>
-                            )}
-                            {entry.context && (
-                              <p className="text-sm text-muted-foreground">
-                                <span className="font-medium text-foreground">
-                                  Note:
-                                </span>{" "}
-                                {entry.context}
-                              </p>
-                            )}
-                          </>
-                        ) : (
-                          <p className="text-sm text-muted-foreground italic">
-                            No translation or note added yet.
-                          </p>
-                        )}
-                        <div className="rounded-lg bg-muted/40 px-3 py-2 text-sm">
+                        {(() => {
+                          const visibleTranslation =
+                            translationOverrides[entry.id] ?? entry.translation;
+                          const isEditing = editingTranslationId === entry.id;
+
+                          return (
+                            <p className="text-sm">
+                              <span className="font-medium">Translation:</span>{" "}
+                              {isEditing ? (
+                                <Input
+                                  ref={translationInputRef}
+                                  value={translationDraft}
+                                  onChange={(e) =>
+                                    setTranslationDraft(e.target.value)
+                                  }
+                                  onBlur={() =>
+                                    saveTranslationEdit(
+                                      entry.id,
+                                      visibleTranslation,
+                                    )
+                                  }
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      saveTranslationEdit(
+                                        entry.id,
+                                        visibleTranslation,
+                                      );
+                                    }
+
+                                    if (e.key === "Escape") {
+                                      e.preventDefault();
+                                      cancelTranslationEdit();
+                                    }
+                                  }}
+                                  disabled={isUpdatingTranslation}
+                                  className="ml-1 inline-flex h-7 w-48 align-middle"
+                                />
+                              ) : (
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={() =>
+                                    startTranslationEdit(
+                                      entry.id,
+                                      visibleTranslation,
+                                    )
+                                  }
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.preventDefault();
+                                      startTranslationEdit(
+                                        entry.id,
+                                        visibleTranslation,
+                                      );
+                                    }
+                                  }}
+                                  className="group inline-flex cursor-default items-center gap-1.5 rounded-md px-1.5 -mx-1.5 align-middle outline-none transition-colors hover:bg-primary/10 focus-visible:bg-primary/10"
+                                >
+                                  <span className="border-b border-dashed border-primary/60 text-foreground/95 group-hover:border-primary group-hover:text-foreground">
+                                    {visibleTranslation}
+                                  </span>
+                                  <Pencil className="size-3.5 text-primary/70 opacity-80 transition-opacity group-hover:opacity-100" />
+                                </span>
+                              )}
+                            </p>
+                          );
+                        })()}
+                        <p className="text-sm">
+                          <span className="font-medium">Base form:</span>{" "}
+                          {entry.baseForm}
+                        </p>
+                        <p className="text-sm">
+                          <span className="font-medium">Part of speech:</span>{" "}
+                          {entry.partOfSpeech}
+                        </p>
+                        <div className="relative rounded-lg bg-muted/40 px-3 py-2 text-sm">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  aria-label="Open in library"
+                                  onClick={() => openLibraryBook(entry)}
+                                  className="absolute top-1.5 right-1.5 inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground/70 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                >
+                                  <ArrowUpRight className="size-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" sideOffset={6}>
+                                Open in library
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <p className="font-medium text-foreground">Book:</p>
                           <p className="font-medium">
                             {entry.bookSnapshot.title}
                           </p>
                           <p className="text-muted-foreground text-xs">
                             {entry.bookSnapshot.author}
                           </p>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          <span className="font-medium text-foreground">
+                            Contexts:
+                          </span>{" "}
+                          {entry.contexts.length ? (
+                            entry.contexts.join(" | ")
+                          ) : (
+                            <span className="italic">
+                              No contexts added yet.
+                            </span>
+                          )}
                         </div>
                       </CardContent>
 

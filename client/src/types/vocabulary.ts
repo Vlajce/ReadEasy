@@ -15,6 +15,7 @@ export interface BookVocabularyWord {
 
 export interface VocabularyEntry {
   id: string;
+  bookId: string;
   word: string;
   baseForm: string;
   translation: string;
