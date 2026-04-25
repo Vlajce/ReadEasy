@@ -106,7 +106,15 @@ const deleteEntry = async (id: string, userId: string): Promise<void> => {
 const getBookWords = async (
   userId: string,
   bookId: string,
-): Promise<{ word: string; highlightColor: string }[]> => {
+): Promise<
+  {
+    word: string;
+    highlightColor: string;
+    baseForm: string;
+    translation: string;
+    partOfSpeech: string;
+  }[]
+> => {
   return vocabularyRepository.findBookWords(userId, bookId);
 };
 

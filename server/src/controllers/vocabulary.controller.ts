@@ -69,18 +69,20 @@ const createVocabularyEntry = asyncHandler(
   },
 );
 
-const saveVocabularyEntry = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user!.userId;
-  const parsed = saveVocabularySchema.parse(req.body);
-  const entry = await vocabularyService.saveVocabulary(userId, parsed);
+const saveVocabularyEntry = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+    const parsed = saveVocabularySchema.parse(req.body);
+    const entry = await vocabularyService.saveVocabulary(userId, parsed);
 
-  return sendSuccess(
-    res,
-    toVocabularyEntryDetailDTO(entry),
-    "Vocabulary saved successfully",
-    200,
-  );
-});
+    return sendSuccess(
+      res,
+      toVocabularyEntryDetailDTO(entry),
+      "Vocabulary saved successfully",
+      200,
+    );
+  },
+);
 
 const updateVocabularyEntry = asyncHandler(
   async (req: Request, res: Response) => {
@@ -117,9 +119,12 @@ const getBookWords = asyncHandler(async (req: Request, res: Response) => {
   const { bookId } = req.params;
   const words = await vocabularyService.getBookWords(userId, bookId as string);
 
-  const dto: BookVocabularyWordDTO[] = words.map((w) => ({
+  const dto = words.map((w) => ({
     word: w.word,
     highlightColor: w.highlightColor as BookVocabularyWordDTO["highlightColor"],
+    baseForm: w.baseForm,
+    translation: w.translation,
+    partOfSpeech: w.partOfSpeech,
   }));
 
   return sendSuccess(

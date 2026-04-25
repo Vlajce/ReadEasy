@@ -20,6 +20,9 @@ export interface VocabularyEntryDTO {
 export interface BookVocabularyWordDTO {
   word: string;
   highlightColor: HighlightColor;
+  baseForm: string;
+  translation: string;
+  partOfSpeech: string;
 }
 
 export interface VocabularyEntryDetailDTO {

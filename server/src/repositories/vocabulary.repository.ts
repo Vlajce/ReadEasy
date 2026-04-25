@@ -159,9 +159,17 @@ const deleteEntry = async (id: string, userId: string): Promise<boolean> => {
 const findBookWords = async (
   userId: string,
   bookId: string,
-): Promise<{ word: string; highlightColor: string }[]> => {
+): Promise<
+  {
+    word: string;
+    highlightColor: string;
+    baseForm: string;
+    translation: string;
+    partOfSpeech: string;
+  }[]
+> => {
   return VocabularyEntry.find({ userId, bookId })
-    .select("word highlightColor -_id")
+    .select("word highlightColor baseForm translation partOfSpeech -_id")
     .lean()
     .exec();
 };

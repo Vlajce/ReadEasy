@@ -1,28 +1,29 @@
 export type HighlightColor = "yellow" | "green" | "blue" | "pink" | "purple";
 export type VocabularyStatus = "new" | "learning" | "mastered";
 
+// ─── Book Vocabulary ──────────────────────────────────────────────────────────
+
 export interface BookVocabularyWord {
   word: string;
   highlightColor: HighlightColor;
+  baseForm: string;
+  translation: string;
+  partOfSpeech: string;
 }
 
-export interface CreateVocabularyInput {
-  word: string;
-  bookId: string;
-  language: string;
-  context?: string;
-  meaning?: string;
-  highlightColor?: HighlightColor;
-}
+// ─── Vocabulary Entry ─────────────────────────────────────────────────────────
 
 export interface VocabularyEntry {
   id: string;
   word: string;
+  baseForm: string;
+  translation: string;
+  targetLanguage: string;
   language: string;
-  status: "new" | "learning" | "mastered";
+  partOfSpeech: string;
+  contexts: string[];
+  status: VocabularyStatus;
   highlightColor: HighlightColor;
-  meaning?: string | null;
-  context?: string | null;
   bookSnapshot: {
     title: string;
     author: string;
@@ -33,11 +34,14 @@ export interface VocabularyEntryDetail {
   id: string;
   bookId: string;
   word: string;
+  baseForm: string;
+  translation: string;
+  targetLanguage: string;
   language: string;
+  partOfSpeech: string;
+  contexts: string[];
   status: VocabularyStatus;
   highlightColor: HighlightColor;
-  meaning?: string | null;
-  context?: string | null;
   bookSnapshot: {
     title: string;
     author: string;
@@ -56,11 +60,34 @@ export interface PaginatedVocabularyEntries {
   };
 }
 
-export interface VocabularyStats {
-  byStatus: Record<VocabularyStatus, number>;
-  byLanguage: Record<string, number>;
-  byDay: Record<string, number>;
+// ─── Mutations Input ──────────────────────────────────────────────────────────
+
+export interface CreateVocabularyInput {
+  word: string;
+  bookId: string;
+  language: string;
+  context?: string;
+  meaning?: string;
+  highlightColor?: HighlightColor;
 }
+
+export interface SaveVocabularyInput {
+  word: string;
+  bookId: string;
+  sentence: string;
+  translation: string;
+  baseForm: string;
+  partOfSpeech: string;
+  highlightColor?: HighlightColor;
+}
+
+export interface TranslationResult {
+  translation: string;
+  baseForm: string;
+  partOfSpeech: string;
+}
+
+// ─── Stats ────────────────────────────────────────────────────────────────────
 
 export interface OverviewStats {
   totalWords: number;
