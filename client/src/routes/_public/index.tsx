@@ -1,5 +1,4 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_public/")({
   beforeLoad: () => {
@@ -7,6 +6,3 @@ export const Route = createFileRoute("/_public/")({
   },
   component: () => null,
 });
-
-
-

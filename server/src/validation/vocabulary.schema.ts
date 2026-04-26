@@ -113,7 +113,7 @@ export const activityStatsQuerySchema = z.object({
 // Translation & AI Integration Schemas
 export const translationRequestSchema = z.object({
   word: z.string().trim().min(1).max(40),
-  sentence: z.string().trim().min(1).max(500),
+  sentence: z.string().trim().min(1).max(1000),
   bookId: z.string().regex(objectIdRegex),
 });
 

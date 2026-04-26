@@ -546,9 +546,7 @@ function VocabularyContainer({
         </div>
       )}
       {!vocabularyQuery.hasNextPage && entries.length > 0 && (
-        <div className="py-4 text-center text-sm text-muted-foreground">
-          You've reached the end.
-        </div>
+        <div className="py-4 text-center text-sm text-muted-foreground"> </div>
       )}
     </>
   );

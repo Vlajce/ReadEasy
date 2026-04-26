@@ -26,6 +26,7 @@ import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslate } from "@/mutations/use-translate";
 import { useSaveVocabulary } from "@/mutations/use-save-vocabulary";
+import { extractSentence } from "@/lib/extract-sentence";
 import type { TranslationResult } from "@/types/vocabulary";
 
 const HIGHLIGHT_COLORS: { value: HighlightColor; label: string }[] = [
@@ -118,7 +119,7 @@ function PopoverWrapper({ book }: { book: BookDetail }) {
   return <Popover key={selectedText} book={book} />;
 }
 
-type PopoverState = "idle" | "loading" | "translated" | "saved";
+type PopoverState = "idle" | "loading" | "translated" | "saved" | "error";
 
 function Popover({ book }: { book: BookDetail }) {
   const selectedText = useSelectedText();
@@ -143,6 +144,7 @@ function Popover({ book }: { book: BookDetail }) {
     useState<TranslationResult | null>(null);
   const [editedTranslation, setEditedTranslation] = useState("");
   const [selectedColor, setSelectedColor] = useState<HighlightColor>("yellow");
+  const [extractedSentence, setExtractedSentence] = useState<string>("");
 
   const popoverWidthClass =
     state === "translated" ? "w-72" : state === "saved" ? "w-68" : "w-48";
@@ -153,12 +155,24 @@ function Popover({ book }: { book: BookDetail }) {
     setState("loading");
 
     const selection = window.getSelection();
-    const sentence = selection?.anchorNode?.textContent?.trim() ?? selectedText;
+    const anchorNode = selection?.anchorNode;
+
+    // Za AI translation — šalji sa kontekstom (3 rečenice)
+    const fullSentence = anchorNode
+      ? extractSentence(anchorNode, selectedText.trim(), true)
+      : selectedText;
+
+    // Za contexts u bazi — čuvaj samo ciljnu rečenicu
+    const contextSentence = anchorNode
+      ? extractSentence(anchorNode, selectedText.trim(), false)
+      : selectedText;
+
+    setExtractedSentence(contextSentence);
 
     translate(
       {
         word: selectedText.trim(),
-        sentence,
+        sentence: fullSentence, // OpenAI dobija ceo paragraf
         bookId: book.id,
       },
       {
@@ -168,7 +182,7 @@ function Popover({ book }: { book: BookDetail }) {
           setState("translated");
         },
         onError: () => {
-          setState("idle");
+          setState("error");
         },
       },
     );
@@ -177,14 +191,11 @@ function Popover({ book }: { book: BookDetail }) {
   const handleSave = () => {
     if (!translationResult || !selectedText.trim()) return;
 
-    const selection = window.getSelection();
-    const sentence = selection?.anchorNode?.textContent?.trim() ?? selectedText;
-
     saveVocabulary(
       {
         word: selectedText.trim(),
         bookId: book.id,
-        sentence,
+        sentence: extractedSentence, // ← uvek ispravna vrednost
         translation: editedTranslation,
         baseForm: translationResult.baseForm,
         partOfSpeech: translationResult.partOfSpeech,
@@ -226,6 +237,22 @@ function Popover({ book }: { book: BookDetail }) {
       {state === "loading" && (
         <div className="flex items-center justify-center py-2">
           <Loader2 className="size-4 animate-spin text-muted-foreground" />
+        </div>
+      )}
+
+      {state === "error" && (
+        <div className="flex flex-col items-center gap-2 py-1">
+          <p className="text-xs text-destructive text-center">
+            Translation failed. Please try again.
+          </p>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleTranslate}
+            className="text-xs font-medium hover:bg-muted-foreground/10"
+          >
+            Try again
+          </Button>
         </div>
       )}
 
