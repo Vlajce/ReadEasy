@@ -29,6 +29,17 @@ function getParagraphText(node: Node): string {
   return node.textContent ?? "";
 }
 
+const LEADING_QUOTES = /^["""''‚‛„‟‹›「」\u0022\u0027]+/;
+const TRAILING_QUOTES = /["""''‚‛„‟‹›「」\u0022\u0027]+$/;
+
+const cleanSentence = (sentence: string): string => {
+  return sentence
+    .replace(LEADING_QUOTES, "")
+    .replace(TRAILING_QUOTES, "")
+    .trim()
+    .replace(/^[a-z]/, (c) => c.toUpperCase());
+};
+
 export function extractSentence(
   anchorNode: Node,
   selectedWord: string,
@@ -48,15 +59,19 @@ export function extractSentence(
     s.toLowerCase().includes(lowerWord),
   );
 
-  if (matchedIndex === -1) return sentences[0] ?? paragraphText;
+  if (matchedIndex === -1)
+    return cleanSentence(sentences[0]?.trim() ?? paragraphText);
 
   if (!includeContext) {
-    return sentences[matchedIndex].trim();
+    const result = cleanSentence(sentences[matchedIndex].trim());
+    if (result.length <= 500) return result;
+    return result.slice(0, 497).replace(/\s+\S*$/, "") + "...";
   }
 
-  // Uzmi rečenicu pre, ciljnu i rečenicu posle
   const start = Math.max(0, matchedIndex - 1);
   const end = Math.min(sentences.length, matchedIndex + 2);
+  const result = cleanSentence(sentences.slice(start, end).join(" ").trim());
 
-  return sentences.slice(start, end).join(" ").trim();
+  if (result.length <= 500) return result;
+  return result.slice(0, 497).replace(/\s+\S*$/, "") + "...";
 }
