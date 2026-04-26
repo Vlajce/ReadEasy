@@ -10,13 +10,15 @@ type VocabularyMapperInput = Pick<
   | "userId"
   | "bookId"
   | "word"
+  | "baseForm"
+  | "translation"
+  | "targetLanguage"
   | "language"
+  | "partOfSpeech"
+  | "contexts"
   | "status"
   | "highlightColor"
   | "bookSnapshot"
-  | "meaning"
-  | "context"
-  | "position"
   | "createdAt"
   | "updatedAt"
 >;
@@ -25,13 +27,17 @@ export const toVocabularyEntryDTO = (
   entry: VocabularyMapperInput,
 ): VocabularyEntryDTO => ({
   id: entry._id.toString(),
+  bookId: entry.bookId.toString(),
   word: entry.word,
+  baseForm: entry.baseForm,
+  translation: entry.translation,
+  targetLanguage: entry.targetLanguage,
   language: entry.language,
+  partOfSpeech: entry.partOfSpeech,
+  contexts: entry.contexts,
   status: entry.status,
   highlightColor: entry.highlightColor,
   bookSnapshot: entry.bookSnapshot,
-  meaning: entry.meaning ?? null,
-  context: entry.context ?? null,
 });
 
 export const toVocabularyEntryDetailDTO = (
@@ -40,13 +46,15 @@ export const toVocabularyEntryDetailDTO = (
   id: entry._id.toString(),
   bookId: entry.bookId.toString(),
   word: entry.word,
+  baseForm: entry.baseForm,
+  translation: entry.translation,
+  targetLanguage: entry.targetLanguage,
   language: entry.language,
+  partOfSpeech: entry.partOfSpeech,
+  contexts: entry.contexts,
   status: entry.status,
   highlightColor: entry.highlightColor,
   bookSnapshot: entry.bookSnapshot,
-  meaning: entry.meaning ?? null,
-  context: entry.context ?? null,
-  position: entry.position ?? null,
   createdAt: entry.createdAt.toISOString(),
   updatedAt: entry.updatedAt.toISOString(),
 });

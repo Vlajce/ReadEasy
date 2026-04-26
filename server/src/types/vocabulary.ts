@@ -2,12 +2,16 @@ export type HighlightColor = "yellow" | "green" | "blue" | "pink" | "purple";
 
 export interface VocabularyEntryDTO {
   id: string;
+  bookId: string;
   word: string;
+  baseForm: string;
+  translation: string;
+  targetLanguage: string;
   language: string;
+  partOfSpeech: string;
+  contexts: string[];
   status: "new" | "learning" | "mastered";
   highlightColor: HighlightColor;
-  meaning?: string | null;
-  context?: string | null;
   bookSnapshot: {
     title: string;
     author: string;
@@ -17,18 +21,23 @@ export interface VocabularyEntryDTO {
 export interface BookVocabularyWordDTO {
   word: string;
   highlightColor: HighlightColor;
+  baseForm: string;
+  translation: string;
+  partOfSpeech: string;
 }
 
 export interface VocabularyEntryDetailDTO {
   id: string;
   bookId: string;
   word: string;
+  baseForm: string;
+  translation: string;
+  targetLanguage: string;
   language: string;
+  partOfSpeech: string;
+  contexts: string[];
   status: "new" | "learning" | "mastered";
   highlightColor: HighlightColor;
-  meaning?: string | null;
-  context?: string | null;
-  position?: { startOffset: number; endOffset: number } | null;
   bookSnapshot: {
     title: string;
     author: string;
@@ -45,12 +54,6 @@ export interface PaginatedVocabularyDTO {
     totalPages: number;
     totalItems: number;
   };
-}
-
-export interface VocabularyStatsDTO {
-  byStatus: Record<"new" | "learning" | "mastered", number>;
-  byLanguage: Record<string, number>;
-  byDay: Record<string, number>;
 }
 
 export interface OverviewStats {

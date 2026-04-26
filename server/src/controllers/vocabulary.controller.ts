@@ -1,19 +1,15 @@
 import type { Request, Response } from "express";
-import { vocabularyRepository } from "../repositories/vocabulary.repository.js";
 import {
   createVocabularySchema,
   updateVocabularySchema,
   findVocabularyQuerySchema,
   activityStatsQuerySchema,
+  saveVocabularySchema,
 } from "../validation/vocabulary.schema.js";
 import { asyncHandler } from "../utils/async.handler.js";
 import { sendSuccess } from "../utils/response.handler.js";
-import { NotFoundError } from "../errors/not-found.error.js";
-import { isMongoDuplicateError } from "../utils/db.errors.js";
-import { ConflictError } from "../errors/conflict.error.js";
 import type {
   PaginatedVocabularyDTO,
-  VocabularyStatsDTO,
   BookVocabularyWordDTO,
   StatsResponse,
 } from "../types/vocabulary.js";
@@ -21,14 +17,13 @@ import {
   toVocabularyEntryDetailDTO,
   toVocabularyEntryDTO,
 } from "../mappers/vocabulary.mapper.js";
-import { vocabularyStatsService } from "../services/vocabulary-stats.service.js";
+import { vocabularyService } from "../services/vocabulary.service.js";
 
 const getVocabularyEntries = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const query = findVocabularyQuerySchema.parse(req.query);
-
-    const result = await vocabularyRepository.findEntries(userId, query);
+    const result = await vocabularyService.getEntries(userId, query);
 
     const paginatedDTO: PaginatedVocabularyDTO = {
       data: result.data.map(toVocabularyEntryDTO),
@@ -48,15 +43,7 @@ const getVocabularyEntryById = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const { id } = req.params;
-
-    const entry = await vocabularyRepository.findEntryById(
-      id as string,
-      userId,
-    );
-
-    if (!entry) {
-      throw new NotFoundError("Vocabulary entry not found");
-    }
+    const entry = await vocabularyService.getEntryById(id as string, userId);
 
     return sendSuccess(
       res,
@@ -71,23 +58,29 @@ const createVocabularyEntry = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const parsed = createVocabularySchema.parse(req.body);
+    const entry = await vocabularyService.createEntry(userId, parsed);
 
-    try {
-      const entry = await vocabularyRepository.createEntry(userId, parsed);
-      return sendSuccess(
-        res,
-        toVocabularyEntryDetailDTO(entry),
-        "Vocabulary entry created successfully",
-        201,
-      );
-    } catch (error) {
-      if (isMongoDuplicateError(error)) {
-        throw new ConflictError(
-          "Vocabulary entry with this word and language already exists",
-        );
-      }
-      throw error;
-    }
+    return sendSuccess(
+      res,
+      toVocabularyEntryDetailDTO(entry),
+      "Vocabulary entry created successfully",
+      201,
+    );
+  },
+);
+
+const saveVocabularyEntry = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+    const parsed = saveVocabularySchema.parse(req.body);
+    const entry = await vocabularyService.saveVocabulary(userId, parsed);
+
+    return sendSuccess(
+      res,
+      toVocabularyEntryDetailDTO(entry),
+      "Vocabulary saved successfully",
+      200,
+    );
   },
 );
 
@@ -96,32 +89,18 @@ const updateVocabularyEntry = asyncHandler(
     const userId = req.user!.userId;
     const { id } = req.params;
     const updates = updateVocabularySchema.parse(req.body);
+    const updated = await vocabularyService.updateEntry(
+      id as string,
+      userId,
+      updates,
+    );
 
-    try {
-      const updated = await vocabularyRepository.updateEntry(
-        id as string,
-        userId,
-        updates,
-      );
-
-      if (!updated) {
-        throw new NotFoundError("Vocabulary entry not found");
-      }
-
-      return sendSuccess(
-        res,
-        toVocabularyEntryDetailDTO(updated),
-        "Vocabulary entry updated successfully",
-        200,
-      );
-    } catch (error) {
-      if (isMongoDuplicateError(error)) {
-        throw new ConflictError(
-          "Another vocabulary entry with this word and language already exists",
-        );
-      }
-      throw error;
-    }
+    return sendSuccess(
+      res,
+      toVocabularyEntryDetailDTO(updated),
+      "Vocabulary entry updated successfully",
+      200,
+    );
   },
 );
 
@@ -129,15 +108,7 @@ const deleteVocabularyEntry = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const { id } = req.params;
-
-    const deleted = await vocabularyRepository.deleteEntry(
-      id as string,
-      userId,
-    );
-
-    if (!deleted) {
-      throw new NotFoundError("Vocabulary entry not found");
-    }
+    await vocabularyService.deleteEntry(id as string, userId);
 
     return sendSuccess(res, null, "Vocabulary entry deleted successfully", 200);
   },
@@ -146,15 +117,14 @@ const deleteVocabularyEntry = asyncHandler(
 const getBookWords = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const { bookId } = req.params;
+  const words = await vocabularyService.getBookWords(userId, bookId as string);
 
-  const words = await vocabularyRepository.findBookWords(
-    userId,
-    bookId as string,
-  );
-
-  const dto: BookVocabularyWordDTO[] = words.map((w) => ({
+  const dto = words.map((w) => ({
     word: w.word,
     highlightColor: w.highlightColor as BookVocabularyWordDTO["highlightColor"],
+    baseForm: w.baseForm,
+    translation: w.translation,
+    partOfSpeech: w.partOfSpeech,
   }));
 
   return sendSuccess(
@@ -168,10 +138,7 @@ const getBookWords = asyncHandler(async (req: Request, res: Response) => {
 const getStats = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const { days } = activityStatsQuerySchema.parse(req.query);
-  const stats: StatsResponse = await vocabularyStatsService.getStats(
-    userId,
-    days,
-  );
+  const stats: StatsResponse = await vocabularyService.getStats(userId, days);
 
   return sendSuccess<StatsResponse>(
     res,
@@ -185,6 +152,7 @@ export const vocabularyController = {
   getVocabularyEntries,
   getVocabularyEntryById,
   createVocabularyEntry,
+  saveVocabularyEntry,
   updateVocabularyEntry,
   deleteVocabularyEntry,
   getBookWords,

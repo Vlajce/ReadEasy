@@ -1,15 +1,15 @@
 import { apiClient } from "@/lib/api-client";
 import type {
-  CreateVocabularyInput,
+  SaveVocabularyInput,
   VocabularyEntryDetail,
 } from "@/types/vocabulary";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-export function useAddVocabulary() {
+export function useSaveVocabulary() {
   return useMutation({
-    mutationFn: (data: CreateVocabularyInput) =>
-      apiClient.post<VocabularyEntryDetail>("/vocabulary", data),
+    mutationFn: (data: SaveVocabularyInput) =>
+      apiClient.post<VocabularyEntryDetail>("/vocabulary/save", data),
 
     onSuccess: (_data, variables, _onMutateResult, context) => {
       context.client.invalidateQueries({
@@ -24,11 +24,11 @@ export function useAddVocabulary() {
         queryKey: ["vocabulary", "stats"],
       });
 
-      toast.success(`"${variables.word}" added to vocabulary`);
+      toast.success(`"${variables.word}" saved to vocabulary`);
     },
 
     onError: (error) => {
-      toast.error(error.message || "Failed to add word to vocabulary");
+      toast.error(error.message || "Failed to save word to vocabulary");
     },
   });
 }

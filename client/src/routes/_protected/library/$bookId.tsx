@@ -16,27 +16,18 @@ import {
 } from "@/components/ui/selection-popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  addVocabularyFormSchema,
-  type AddVocabularyFormInput,
-} from "@/schemas/vocabulary";
-import { useAddVocabulary } from "@/mutations/use-add-vocabulary";
 import { highlightVocabularyWords, type HighlightWord } from "@/lib/highlight";
 import type { HighlightColor } from "@/types/vocabulary";
 import { cn } from "@/lib/utils";
 import type { BookDetail } from "@/types/book";
 import { ArrowUp } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useTranslate } from "@/mutations/use-translate";
+import { useSaveVocabulary } from "@/mutations/use-save-vocabulary";
+import { extractSentence } from "@/lib/extract-sentence";
+import type { TranslationResult } from "@/types/vocabulary";
 
 const HIGHLIGHT_COLORS: { value: HighlightColor; label: string }[] = [
   { value: "yellow", label: "Yellow" },
@@ -106,7 +97,7 @@ function RouteComponent() {
           />
         </SelectionPopoverTrigger>
         <SelectionPopoverContent className="p-1 bg-accent">
-          <Popover book={book} />
+          <PopoverWrapper book={book} />
         </SelectionPopoverContent>
       </SelectionPopover>
 
@@ -123,120 +114,248 @@ function RouteComponent() {
   );
 }
 
+function PopoverWrapper({ book }: { book: BookDetail }) {
+  const selectedText = useSelectedText();
+  return <Popover key={selectedText} book={book} />;
+}
+
+type PopoverState = "idle" | "loading" | "translated" | "saved" | "error";
+
 function Popover({ book }: { book: BookDetail }) {
   const selectedText = useSelectedText();
   const closePopover = useSelectionPopoverClose();
-  const { mutate: addVocabulary, isPending } = useAddVocabulary();
+  const { mutate: translate } = useTranslate();
+  const { mutate: saveVocabulary, isPending: isSaving } = useSaveVocabulary();
+
+  const { data: vocabWords } = useQuery(getBookVocabularyQueryOptions(book.id));
+
+  const savedEntry = useMemo(() => {
+    if (!selectedText || !vocabWords) return null;
+    return (
+      vocabWords.find((w) => w.word === selectedText.trim().toLowerCase()) ??
+      null
+    );
+  }, [selectedText, vocabWords]);
+
+  const [state, setState] = useState<PopoverState>(
+    savedEntry ? "saved" : "idle",
+  );
+  const [translationResult, setTranslationResult] =
+    useState<TranslationResult | null>(null);
+  const [editedTranslation, setEditedTranslation] = useState("");
   const [selectedColor, setSelectedColor] = useState<HighlightColor>("yellow");
+  const [extractedSentence, setExtractedSentence] = useState<string>("");
 
-  const form = useForm<AddVocabularyFormInput>({
-    resolver: zodResolver(addVocabularyFormSchema),
-    defaultValues: {
-      meaning: "",
-      context: "",
-    },
-  });
+  const popoverWidthClass =
+    state === "translated" ? "w-72" : state === "saved" ? "w-68" : "w-48";
 
-  const handleSubmit = (data: AddVocabularyFormInput) => {
+  const handleTranslate = () => {
     if (!selectedText.trim()) return;
 
-    addVocabulary({
-      word: selectedText,
-      bookId: book.id,
-      language: book.language,
-      highlightColor: selectedColor,
-      meaning: data.meaning,
-      context: data.context,
-    });
+    setState("loading");
 
-    form.reset();
-    closePopover();
+    const selection = window.getSelection();
+    const anchorNode = selection?.anchorNode;
+
+    // Za AI translation — šalji sa kontekstom (3 rečenice)
+    const fullSentence = anchorNode
+      ? extractSentence(anchorNode, selectedText.trim(), true)
+      : selectedText;
+
+    // Za contexts u bazi — čuvaj samo ciljnu rečenicu
+    const contextSentence = anchorNode
+      ? extractSentence(anchorNode, selectedText.trim(), false)
+      : selectedText;
+
+    setExtractedSentence(contextSentence);
+
+    translate(
+      {
+        word: selectedText.trim(),
+        sentence: fullSentence, // OpenAI dobija ceo paragraf
+        bookId: book.id,
+      },
+      {
+        onSuccess: (result) => {
+          setTranslationResult(result);
+          setEditedTranslation(result.translation);
+          setState("translated");
+        },
+        onError: () => {
+          setState("error");
+        },
+      },
+    );
+  };
+
+  const handleSave = () => {
+    if (!translationResult || !selectedText.trim()) return;
+
+    saveVocabulary(
+      {
+        word: selectedText.trim(),
+        bookId: book.id,
+        sentence: extractedSentence, // ← uvek ispravna vrednost
+        translation: editedTranslation,
+        baseForm: translationResult.baseForm,
+        partOfSpeech: translationResult.partOfSpeech,
+        highlightColor: selectedColor,
+      },
+      {
+        onSuccess: () => {
+          closePopover();
+        },
+      },
+    );
   };
 
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(handleSubmit)}
-        className="flex flex-col gap-3 p-2 w-70"
-      >
-        {/* Selected word header */}
-        <div className="text-center">
-          <p className="text-xs text-muted-foreground">Selected word</p>
-          <p className="text-sm font-semibold text-wrap" title={selectedText}>
-            &ldquo;{selectedText}&rdquo;
-          </p>
+    <div
+      className={cn(
+        "flex flex-col gap-3 p-2 transition-[width] duration-200",
+        popoverWidthClass,
+      )}
+    >
+      <div className="text-center">
+        <p className="text-sm text-muted-foreground">Selected word</p>
+        <p className="text-base font-semibold text-wrap" title={selectedText}>
+          &ldquo;{selectedText}&rdquo;
+        </p>
+      </div>
+
+      {state === "idle" && (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={handleTranslate}
+          className="text-sm font-medium hover:bg-muted-foreground/10"
+        >
+          Translate
+        </Button>
+      )}
+
+      {state === "loading" && (
+        <div className="flex items-center justify-center py-2">
+          <Loader2 className="size-4 animate-spin text-muted-foreground" />
         </div>
+      )}
 
-        {/* Translation input */}
-        <FormField
-          control={form.control}
-          name="meaning"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-xs">Translation</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="Add translation or meaning here…"
-                  className="h-7 text-xs md:text-xs p-1.5 pt-1 placeholder:text-xs bg-muted-foreground/5 inset-shadow-sm shadow-none"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage className="text-xs" />
-            </FormItem>
-          )}
-        />
-
-        {/* Note textarea */}
-        <FormField
-          control={form.control}
-          name="context"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-xs">Note</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Add your note or example sentence here…"
-                  className="min-h-14 text-xs md:text-xs p-1.5 placeholder:text-xs bg-muted-foreground/5 resize-none inset-shadow-sm shadow-none"
-                  rows={2}
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage className="text-xs" />
-            </FormItem>
-          )}
-        />
-
-        {/* Color picker + submit */}
-        <div className="flex items-center justify-between gap-1.5">
-          <div className="flex items-center gap-1 px-1">
-            {HIGHLIGHT_COLORS.map(({ value, label }) => (
-              <button
-                key={value}
-                type="button"
-                title={label}
-                onClick={() => setSelectedColor(value)}
-                className={cn(
-                  "size-5 rounded-full transition-all border-2 vocab-highlight-swatch",
-                  `vocab-highlight-swatch-${value}`,
-                  selectedColor === value
-                    ? "border-foreground scale-110"
-                    : "border-transparent opacity-60 hover:opacity-100",
-                )}
-              />
-            ))}
-          </div>
-          <div className="w-px h-5 bg-border" />
+      {state === "error" && (
+        <div className="flex flex-col items-center gap-2 py-1">
+          <p className="text-xs text-destructive text-center">
+            Translation failed. Please try again.
+          </p>
           <Button
             size="sm"
-            variant={"ghost"}
-            type="submit"
-            disabled={isPending || !selectedText.trim()}
-            className="text-xs ml-auto font-medium hover:bg-muted-foreground/10"
+            variant="ghost"
+            onClick={handleTranslate}
+            className="text-xs font-medium hover:bg-muted-foreground/10"
           >
-            Add to vocabulary
+            Try again
           </Button>
         </div>
-      </form>
-    </Form>
+      )}
+
+      {state === "translated" && translationResult && (
+        <>
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1">
+              <p className="text-sm text-muted-foreground">Translation</p>
+              <Input
+                value={editedTranslation}
+                onChange={(e) => setEditedTranslation(e.target.value)}
+                className="h-8 text-sm md:text-sm p-1.5 pt-1 bg-muted-foreground/5 inset-shadow-sm shadow-none"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">Base form</p>
+              <p className="text-sm font-medium">
+                {translationResult.baseForm}
+              </p>
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">Part of speech</p>
+              <p className="text-sm font-medium">
+                {translationResult.partOfSpeech}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-1">
+              {HIGHLIGHT_COLORS.map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  title={label}
+                  onClick={() => setSelectedColor(value)}
+                  className={cn(
+                    "size-5 rounded-full transition-all border-2 vocab-highlight-swatch",
+                    `vocab-highlight-swatch-${value}`,
+                    selectedColor === value
+                      ? "border-foreground scale-110"
+                      : "border-transparent opacity-60 hover:opacity-100",
+                  )}
+                />
+              ))}
+            </div>
+            <div className="h-6 shrink-0 border-l border-foreground/20" />
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleSave}
+              disabled={isSaving || !editedTranslation.trim()}
+              className="ml-0.5 shrink-0 text-sm font-medium hover:bg-muted-foreground/10"
+            >
+              {isSaving ? (
+                <Loader2 className="size-3 animate-spin" />
+              ) : (
+                "Save to vocabulary"
+              )}
+            </Button>
+          </div>
+        </>
+      )}
+
+      {state === "saved" && savedEntry && (
+        <>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">Translation</p>
+              <p className="text-sm font-medium">{savedEntry.translation}</p>
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">Base form</p>
+              <p className="text-sm font-medium">{savedEntry.baseForm}</p>
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">Part of speech</p>
+              <p className="text-sm font-medium">{savedEntry.partOfSpeech}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 pt-1">
+            <div className="flex shrink-0 items-center gap-1.5 ">
+              <div
+                className={cn(
+                  "size-2 rounded-full vocab-highlight-swatch",
+                  `vocab-highlight-swatch-${savedEntry.highlightColor}`,
+                )}
+              />
+              <p className="text-sm text-muted-foreground">Already saved</p>
+            </div>
+            <div className="h-6 shrink-0 border-l border-foreground/20" />
+            <Button
+              size="sm"
+              variant="ghost"
+              className="ml-0.5 shrink-0 text-sm font-medium hover:bg-muted-foreground/10"
+              asChild
+            >
+              <Link to="/vocabulary">View in vocabulary</Link>
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
