@@ -42,6 +42,15 @@ export interface VocabularyEntryDetailDTO {
     title: string;
     author: string;
   };
+  reviewCount: number;
+  correctCount: number;
+  incorrectCount: number;
+  consecutiveIncorrect: number;
+  lastReviewedAt: string | null;
+  statusHistory: Array<{
+    status: "new" | "learning" | "mastered";
+    changedAt: string;
+  }>;
   createdAt: string;
   updatedAt: string;
 }

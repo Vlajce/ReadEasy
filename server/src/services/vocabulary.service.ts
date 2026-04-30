@@ -296,9 +296,56 @@ const getStats = async (
   };
 };
 
-// ─── AI FLOW ─────────────────────────────────────────────────────────────────
+// ─── EXERCISES ─────────────────────────────────────────────────────────────────
 
-// Translation flow is handled separately via translation.controller/service.
+const submitReview = async (
+  userId: string,
+  entryId: string,
+  correct: boolean,
+): Promise<IVocabularyEntry> => {
+  const updated = await vocabularyRepository.updateReviewResult(
+    entryId,
+    userId,
+    correct,
+  );
+
+  if (!updated) throw new NotFoundError("Vocabulary entry not found");
+
+  const { status, correctCount, incorrectCount, consecutiveIncorrect } =
+    updated;
+
+  let newStatus: "new" | "learning" | "mastered" | null = null;
+
+  // Progression
+  if (status === "new" && correctCount >= 3) {
+    newStatus = "learning";
+  } else if (
+    status === "learning" &&
+    correctCount >= 7 &&
+    correctCount - incorrectCount >= 5
+  ) {
+    newStatus = "mastered";
+  }
+
+  // Regression
+  if (status === "mastered" && consecutiveIncorrect >= 3) {
+    newStatus = "learning";
+  } else if (status === "learning" && consecutiveIncorrect >= 3) {
+    newStatus = "new";
+  }
+
+  if (!newStatus) return updated;
+
+  const withStatus = await vocabularyRepository.appendStatusHistory(
+    entryId,
+    userId,
+    newStatus,
+  );
+
+  if (!withStatus) throw new NotFoundError("Vocabulary entry not found");
+
+  return withStatus;
+};
 
 export const vocabularyService = {
   getEntries,
@@ -312,4 +359,5 @@ export const vocabularyService = {
   getActivityStats,
   getLanguageStats,
   getStats,
+  submitReview,
 };

@@ -14,6 +14,7 @@ export const ErrorCodes = {
 
   // SYSTEM
   SYS_INTERNAL_ERROR: "SYS_001",
+  SYS_EXTERNAL_SERVICE: "SYS_002",
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

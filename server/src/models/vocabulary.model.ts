@@ -33,6 +33,9 @@ export interface IVocabularyEntry {
     status: "new" | "learning" | "mastered";
     changedAt: Date;
   }>;
+  correctCount: number;
+  incorrectCount: number;
+  consecutiveIncorrect: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -136,7 +139,6 @@ const vocabularySchema = new Schema<IVocabularyEntry>(
       type: bookSnapshotSchema,
       required: true,
     },
-    // Feature 1: Stats tracking (MVP)
     reviewCount: {
       type: Number,
       default: 0,
@@ -146,10 +148,24 @@ const vocabularySchema = new Schema<IVocabularyEntry>(
       type: Date,
       default: null,
     },
-    // Future: Track status transitions (Feature 2)
     statusHistory: {
       type: [statusHistoryItemSchema],
       default: [],
+    },
+    correctCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    incorrectCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    consecutiveIncorrect: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
   },
 
@@ -171,11 +187,6 @@ vocabularySchema.index(
 vocabularySchema.index(
   { userId: 1, status: 1, language: 1, createdAt: -1 },
   { name: "idx_status_lang_feed" },
-);
-
-vocabularySchema.index(
-  { userId: 1, language: 1, createdAt: -1 },
-  { name: "idx_lang_feed" },
 );
 
 // Prefix search (brza pretraga po word)
@@ -200,6 +211,12 @@ vocabularySchema.index(
 vocabularySchema.index(
   { userId: 1, lastReviewedAt: -1 },
   { name: "idx_stats_last_reviewed" },
+);
+
+// Exercises index
+vocabularySchema.index(
+  { userId: 1, language: 1, status: 1, lastReviewedAt: 1 },
+  { name: "idx_exercises_feed" },
 );
 
 export const VocabularyEntry = mongoose.model<IVocabularyEntry>(

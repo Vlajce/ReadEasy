@@ -19,6 +19,12 @@ type VocabularyMapperInput = Pick<
   | "status"
   | "highlightColor"
   | "bookSnapshot"
+  | "reviewCount"
+  | "correctCount"
+  | "incorrectCount"
+  | "consecutiveIncorrect"
+  | "lastReviewedAt"
+  | "statusHistory"
   | "createdAt"
   | "updatedAt"
 >;
@@ -55,6 +61,17 @@ export const toVocabularyEntryDetailDTO = (
   status: entry.status,
   highlightColor: entry.highlightColor,
   bookSnapshot: entry.bookSnapshot,
+  reviewCount: entry.reviewCount,
+  correctCount: entry.correctCount,
+  incorrectCount: entry.incorrectCount,
+  consecutiveIncorrect: entry.consecutiveIncorrect,
+  lastReviewedAt: entry.lastReviewedAt
+    ? entry.lastReviewedAt.toISOString()
+    : null,
+  statusHistory: (entry.statusHistory ?? []).map((h) => ({
+    status: h.status,
+    changedAt: h.changedAt.toISOString(),
+  })),
   createdAt: entry.createdAt.toISOString(),
   updatedAt: entry.updatedAt.toISOString(),
 });
