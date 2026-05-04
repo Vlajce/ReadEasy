@@ -80,12 +80,16 @@ ${wordList}
 
 Rules:
 - For fill_blank and multiple_choice_fill_blank: generate a SHORT, natural sentence (max 10 words) in ${sourceLanguage} using the word. Replace the word with "_____".
+- The sentence must make the missing word strongly inferable from context. Never generate a sentence where multiple different words could fit the blank.
+- The sentence must sound natural — like something a native speaker would actually say or write.
+- Do NOT use the word itself or its direct derivatives anywhere else in the sentence.
 - For multiple_choice_translation: "word" must be in ${sourceLanguage}, all options must be in ${targetLanguage}.
 - For multiple_choice_fill_blank: all options must be in ${sourceLanguage}.
 - Distractors must be plausible — same part of speech, similar difficulty. Never use the correct answer as a distractor.
 - The correct answer MUST appear in the options array exactly once.
 - Keep the index from the input for each exercise.
 - Respond ONLY with a valid JSON object in exactly this format:
+
 
 ${jsonFormat}`,
     },
@@ -211,13 +215,17 @@ const submitExercises = async (
   userId: string,
   input: SubmitExercisesInput,
 ): Promise<void> => {
-  const latestByEntryId = new Map<string, boolean>();
+  const seen = new Set<string>();
+
   for (const item of input.results) {
-    latestByEntryId.set(item.entryId, item.correct);
+    if (seen.has(item.entryId)) {
+      throw new BadRequestError("Duplicate entryId in results");
+    }
+    seen.add(item.entryId);
   }
 
   await Promise.all(
-    Array.from(latestByEntryId.entries()).map(([entryId, correct]) =>
+    input.results.map(({ entryId, correct }) =>
       vocabularyService.submitReview(userId, entryId, correct),
     ),
   );

@@ -168,10 +168,13 @@ const findBookWords = async (
     baseForm: string;
     translation: string;
     partOfSpeech: string;
+    exampleSentence: string;
   }[]
 > => {
   return VocabularyEntry.find({ userId, bookId })
-    .select("word highlightColor baseForm translation partOfSpeech -_id")
+    .select(
+      "word highlightColor baseForm translation partOfSpeech exampleSentence -_id",
+    )
     .lean()
     .exec();
 };

@@ -68,6 +68,7 @@ const createEntry = async (
       contexts: data.contexts ?? [],
       status: data.status ?? "new",
       highlightColor: data.highlightColor ?? "yellow",
+      exampleSentence: data.exampleSentence ?? "",
     });
   } catch (error) {
     if (isMongoDuplicateError(error)) {
@@ -113,6 +114,7 @@ const getBookWords = async (
     baseForm: string;
     translation: string;
     partOfSpeech: string;
+    exampleSentence: string;
   }[]
 > => {
   return vocabularyRepository.findBookWords(userId, bookId);
@@ -175,6 +177,7 @@ const saveVocabulary = async (
       contexts: [normalizedSentence],
       status: "new",
       highlightColor: data.highlightColor ?? "yellow",
+      exampleSentence: data.exampleSentence ?? "",
     });
   } catch (error) {
     if (isMongoDuplicateError(error)) {

@@ -52,7 +52,8 @@ Respond ONLY with a valid JSON object in exactly this format:
 {
   "translation": "the translation of the word in ${targetLanguage}",
   "baseForm": "the base/dictionary form of the word in ${sourceLanguage} — MUST be in ${sourceLanguage}, never translated into ${targetLanguage}",
-  "partOfSpeech": "noun | verb | adjective | adverb | pronoun | preposition | conjunction | interjection | other"
+  "partOfSpeech": "noun | verb | adjective | adverb | pronoun | preposition | conjunction | interjection | other",
+  "exampleSentence": "a short natural sentence in ${sourceLanguage} using the word (max 12 words)"
 }
 
 Rules:
@@ -66,7 +67,11 @@ ${focusRule}
   - for nouns: use nominative singular
   - for adjectives: use base form
 - partOfSpeech: based on how the word is used in this specific sentence
-- If partOfSpeech is unclear, use "other"`,
+- If partOfSpeech is unclear, use "other"
+- exampleSentence: write a short, natural sentence in ${sourceLanguage} that clearly demonstrates the meaning of "${word}"
+  - maximum 12 words
+  - must sound like something a native speaker would say
+  - do NOT translate it — it must be in ${sourceLanguage} only`,
     },
   ];
 };
@@ -106,6 +111,7 @@ const translateWord = async (
       translation: cached.translation,
       baseForm: cached.baseForm,
       partOfSpeech: cached.partOfSpeech,
+      exampleSentence: cached.exampleSentence,
     };
   }
 
@@ -115,7 +121,7 @@ const translateWord = async (
     sourceLanguage,
     targetLanguage,
   });
-  const raw = await openaiService.callWithRetry(messages, 300);
+  const raw = await openaiService.callWithRetry(messages, 500);
 
   let parsed: unknown;
   try {
@@ -137,6 +143,7 @@ const translateWord = async (
     translation: translated.translation.trim(),
     baseForm: normalizeWord(translated.baseForm),
     partOfSpeech: translated.partOfSpeech.trim().toLowerCase(),
+    exampleSentence: translated.exampleSentence.trim(),
     sourceLanguage,
     targetLanguage,
   });

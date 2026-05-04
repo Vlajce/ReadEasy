@@ -15,7 +15,7 @@ type VocabularyMapperInput = Pick<
   | "targetLanguage"
   | "language"
   | "partOfSpeech"
-  | "contexts"
+  | "exampleSentence"
   | "status"
   | "highlightColor"
   | "bookSnapshot"
@@ -40,7 +40,7 @@ export const toVocabularyEntryDTO = (
   targetLanguage: entry.targetLanguage,
   language: entry.language,
   partOfSpeech: entry.partOfSpeech,
-  contexts: entry.contexts,
+  exampleSentence: entry.exampleSentence,
   status: entry.status,
   highlightColor: entry.highlightColor,
   bookSnapshot: entry.bookSnapshot,
@@ -57,7 +57,7 @@ export const toVocabularyEntryDetailDTO = (
   targetLanguage: entry.targetLanguage,
   language: entry.language,
   partOfSpeech: entry.partOfSpeech,
-  contexts: entry.contexts,
+  exampleSentence: entry.exampleSentence,
   status: entry.status,
   highlightColor: entry.highlightColor,
   bookSnapshot: entry.bookSnapshot,

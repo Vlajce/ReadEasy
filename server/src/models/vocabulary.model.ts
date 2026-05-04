@@ -21,6 +21,7 @@ export interface IVocabularyEntry {
   targetLanguage: string;
   partOfSpeech: string;
   contexts: string[];
+  exampleSentence: string;
   status: "new" | "learning" | "mastered";
   highlightColor: HighlightColor;
   bookSnapshot: {
@@ -124,6 +125,12 @@ const vocabularySchema = new Schema<IVocabularyEntry>(
     contexts: {
       type: [String],
       default: [],
+    },
+    exampleSentence: {
+      type: String,
+      required: true,
+      trim: true,
+      default: "",
     },
     status: {
       type: String,

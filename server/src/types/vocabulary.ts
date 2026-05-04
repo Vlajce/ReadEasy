@@ -9,7 +9,7 @@ export interface VocabularyEntryDTO {
   targetLanguage: string;
   language: string;
   partOfSpeech: string;
-  contexts: string[];
+  exampleSentence: string;
   status: "new" | "learning" | "mastered";
   highlightColor: HighlightColor;
   bookSnapshot: {
@@ -24,6 +24,7 @@ export interface BookVocabularyWordDTO {
   baseForm: string;
   translation: string;
   partOfSpeech: string;
+  exampleSentence: string;
 }
 
 export interface VocabularyEntryDetailDTO {
@@ -35,7 +36,7 @@ export interface VocabularyEntryDetailDTO {
   targetLanguage: string;
   language: string;
   partOfSpeech: string;
-  contexts: string[];
+  exampleSentence: string;
   status: "new" | "learning" | "mastered";
   highlightColor: HighlightColor;
   bookSnapshot: {
