@@ -348,22 +348,25 @@ const getWordsForExercises = async (
   }
 
   // smart_mix
-  const learningTarget = Math.ceil(count * 0.5);
-  const newTarget = Math.ceil(count * 0.3);
-  const masteredTarget = Math.floor(count * 0.2);
+  const learningTarget = Math.round(count * 0.5);
+  const newTarget = Math.round(count * 0.3);
+  const masteredTarget = Math.max(0, count - learningTarget - newTarget);
 
   const [learningWords, newWords, masteredWords] = await Promise.all([
     VocabularyEntry.find({ ...baseFilter, status: "learning" })
+      .sort({ lastReviewedAt: 1 })
       .limit(learningTarget)
       .select(EXCLUDE_FIELDS)
       .lean()
       .exec(),
     VocabularyEntry.find({ ...baseFilter, status: "new" })
+      .sort({ lastReviewedAt: 1 })
       .limit(newTarget)
       .select(EXCLUDE_FIELDS)
       .lean()
       .exec(),
     VocabularyEntry.find({ ...baseFilter, status: "mastered" })
+      .sort({ lastReviewedAt: 1 })
       .limit(masteredTarget)
       .select(EXCLUDE_FIELDS)
       .lean()
@@ -387,7 +390,7 @@ const getWordsForExercises = async (
     .lean()
     .exec();
 
-  return [...collected, ...extra];
+  return [...collected, ...extra].slice(0, count);
 };
 
 const updateReviewResult = async (

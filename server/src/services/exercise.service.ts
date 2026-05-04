@@ -202,11 +202,13 @@ const generateExercises = async (
     );
   }
 
-  const assigned = assignExerciseTypes(words, types as ExerciseType[]);
+  const limitedWords = words.slice(0, count);
+  const assigned = assignExerciseTypes(limitedWords, types as ExerciseType[]);
   const messages = buildExerciseMessages(assigned, language, targetLanguage);
   const raw = await openaiService.callWithRetry(messages, 2000);
 
-  return parseExerciseResponse(raw, assigned);
+  const exercises = parseExerciseResponse(raw, assigned);
+  return exercises.slice(0, count);
 };
 
 // ─── Submit ───────────────────────────────────────────────────────────────────

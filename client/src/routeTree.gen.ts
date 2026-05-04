@@ -15,6 +15,7 @@ import { Route as PublicIndexRouteImport } from './routes/_public/index'
 import { Route as ProtectedVocabularyRouteImport } from './routes/_protected/vocabulary'
 import { Route as ProtectedStatsRouteImport } from './routes/_protected/stats'
 import { Route as ProtectedExploreRouteImport } from './routes/_protected/explore'
+import { Route as ProtectedExercisesRouteImport } from './routes/_protected/exercises'
 import { Route as PublicAuthRouteRouteImport } from './routes/_public/_auth/route'
 import { Route as ProtectedLibraryRouteRouteImport } from './routes/_protected/library/route'
 import { Route as ProtectedLibraryIndexRouteImport } from './routes/_protected/library/index'
@@ -50,6 +51,11 @@ const ProtectedExploreRoute = ProtectedExploreRouteImport.update({
   path: '/explore',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
+const ProtectedExercisesRoute = ProtectedExercisesRouteImport.update({
+  id: '/exercises',
+  path: '/exercises',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
 const PublicAuthRouteRoute = PublicAuthRouteRouteImport.update({
   id: '/_auth',
   getParentRoute: () => PublicRouteRoute,
@@ -83,6 +89,7 @@ const ProtectedLibraryBookIdRoute = ProtectedLibraryBookIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
   '/library': typeof ProtectedLibraryRouteRouteWithChildren
+  '/exercises': typeof ProtectedExercisesRoute
   '/explore': typeof ProtectedExploreRoute
   '/stats': typeof ProtectedStatsRoute
   '/vocabulary': typeof ProtectedVocabularyRoute
@@ -93,6 +100,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
+  '/exercises': typeof ProtectedExercisesRoute
   '/explore': typeof ProtectedExploreRoute
   '/stats': typeof ProtectedStatsRoute
   '/vocabulary': typeof ProtectedVocabularyRoute
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   '/_public': typeof PublicRouteRouteWithChildren
   '/_protected/library': typeof ProtectedLibraryRouteRouteWithChildren
   '/_public/_auth': typeof PublicAuthRouteRouteWithChildren
+  '/_protected/exercises': typeof ProtectedExercisesRoute
   '/_protected/explore': typeof ProtectedExploreRoute
   '/_protected/stats': typeof ProtectedStatsRoute
   '/_protected/vocabulary': typeof ProtectedVocabularyRoute
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/library'
+    | '/exercises'
     | '/explore'
     | '/stats'
     | '/vocabulary'
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/exercises'
     | '/explore'
     | '/stats'
     | '/vocabulary'
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/_public'
     | '/_protected/library'
     | '/_public/_auth'
+    | '/_protected/exercises'
     | '/_protected/explore'
     | '/_protected/stats'
     | '/_protected/vocabulary'
@@ -201,6 +213,13 @@ declare module '@tanstack/react-router' {
       path: '/explore'
       fullPath: '/explore'
       preLoaderRoute: typeof ProtectedExploreRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/exercises': {
+      id: '/_protected/exercises'
+      path: '/exercises'
+      fullPath: '/exercises'
+      preLoaderRoute: typeof ProtectedExercisesRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_public/_auth': {
@@ -265,6 +284,7 @@ const ProtectedLibraryRouteRouteWithChildren =
 
 interface ProtectedRouteRouteChildren {
   ProtectedLibraryRouteRoute: typeof ProtectedLibraryRouteRouteWithChildren
+  ProtectedExercisesRoute: typeof ProtectedExercisesRoute
   ProtectedExploreRoute: typeof ProtectedExploreRoute
   ProtectedStatsRoute: typeof ProtectedStatsRoute
   ProtectedVocabularyRoute: typeof ProtectedVocabularyRoute
@@ -272,6 +292,7 @@ interface ProtectedRouteRouteChildren {
 
 const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedLibraryRouteRoute: ProtectedLibraryRouteRouteWithChildren,
+  ProtectedExercisesRoute: ProtectedExercisesRoute,
   ProtectedExploreRoute: ProtectedExploreRoute,
   ProtectedStatsRoute: ProtectedStatsRoute,
   ProtectedVocabularyRoute: ProtectedVocabularyRoute,
