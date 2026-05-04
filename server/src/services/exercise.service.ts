@@ -37,33 +37,11 @@ const buildExerciseMessages = (
     )
     .join("\n\n");
 
-  const jsonFormat = `{
-  "exercises": [
-    // fill_blank example:
-    {
-      "index": 0,
-      "type": "fill_blank",
-      "sentence": "Short sentence in ${sourceLanguage} with _____ replacing the word",
-      "answer": "the correct word in ${sourceLanguage}"
-    },
-    // multiple_choice_translation example:
-    {
-      "index": 1,
-      "type": "multiple_choice_translation",
-      "word": "the word in ${sourceLanguage}",
-      "options": ["correct translation in ${targetLanguage}", "distractor 1", "distractor 2", "distractor 3"],
-      "answer": "correct translation in ${targetLanguage}"
-    },
-    // multiple_choice_fill_blank example:
-    {
-      "index": 2,
-      "type": "multiple_choice_fill_blank",
-      "sentence": "Short sentence in ${sourceLanguage} with _____ replacing the word",
-      "options": ["correct word in ${sourceLanguage}", "distractor 1", "distractor 2", "distractor 3"],
-      "answer": "correct word in ${sourceLanguage}"
-    }
-  ]
-}`;
+  const jsonFormat = `{"exercises":[
+  {"index":0,"type":"fill_blank","sentence":"Short sentence with _____ here.","answer":"word"},
+  {"index":1,"type":"multiple_choice_translation","word":"sourceWord","options":["correct","wrong1","wrong2","wrong3"],"answer":"correct"},
+  {"index":2,"type":"multiple_choice_fill_blank","sentence":"Short sentence with _____ here.","options":["correct","wrong1","wrong2","wrong3"],"answer":"correct"}
+]}`;
 
   return [
     {
@@ -205,7 +183,8 @@ const generateExercises = async (
   const limitedWords = words.slice(0, count);
   const assigned = assignExerciseTypes(limitedWords, types as ExerciseType[]);
   const messages = buildExerciseMessages(assigned, language, targetLanguage);
-  const raw = await openaiService.callWithRetry(messages, 2000);
+  const estimatedTokens = Math.min(assigned.length * 120 + 300, 2000);
+  const raw = await openaiService.callWithRetry(messages, estimatedTokens);
 
   const exercises = parseExerciseResponse(raw, assigned);
   return exercises.slice(0, count);

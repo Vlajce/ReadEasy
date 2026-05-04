@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Check, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -46,6 +46,12 @@ const TYPE_OPTIONS: { id: ExerciseType; label: string }[] = [
   { id: "multiple_choice_fill_blank", label: "Multiple choice fill blank" },
 ];
 
+const LOADING_MESSAGES = [
+  "Analyzing your vocabulary...",
+  "Crafting your exercises...",
+  "Almost ready...",
+];
+
 function formatLanguage(language: string) {
   const country = getLanguage(language)?.country ?? "";
   const emoji = country ? getEmoji(country) : "";
@@ -74,10 +80,31 @@ export function SetupDialog({
     "multiple_choice_translation",
     "multiple_choice_fill_blank",
   ]);
+  const [loadingMessage, setLoadingMessage] = useState(LOADING_MESSAGES[0]!);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const msgIndexRef = useRef(0);
 
   const { mutate: generate, isPending } = useGenerateExercises();
 
   const effectiveLanguage = language || availableLanguages[0]?.language || "";
+
+  useEffect(() => {
+    if (!isPending) return;
+
+    msgIndexRef.current = 0;
+
+    intervalRef.current = setInterval(() => {
+      msgIndexRef.current = Math.min(
+        msgIndexRef.current + 1,
+        LOADING_MESSAGES.length - 1,
+      );
+      setLoadingMessage(LOADING_MESSAGES[msgIndexRef.current]!);
+    }, 2500);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [isPending]);
 
   const toggleType = (type: ExerciseType) => {
     setTypes((prev) =>
@@ -149,11 +176,13 @@ export function SetupDialog({
                   key={m.id}
                   type="button"
                   onClick={() => setMode(m.id)}
+                  disabled={isPending}
                   className={cn(
                     "flex items-start gap-3 rounded-lg border p-3 text-left transition-colors",
                     mode === m.id
                       ? "border-foreground bg-accent"
                       : "border-border hover:bg-muted/50",
+                    isPending && "opacity-50 pointer-events-none",
                   )}
                 >
                   <div
@@ -188,11 +217,13 @@ export function SetupDialog({
                   key={t.id}
                   type="button"
                   onClick={() => toggleType(t.id)}
+                  disabled={isPending}
                   className={cn(
                     "flex items-center gap-3 rounded-lg border p-3 text-left transition-colors",
                     types.includes(t.id)
                       ? "border-foreground bg-accent"
                       : "border-border hover:bg-muted/50",
+                    isPending && "opacity-50 pointer-events-none",
                   )}
                 >
                   <div
@@ -224,11 +255,13 @@ export function SetupDialog({
                   key={n}
                   type="button"
                   onClick={() => setCount(n)}
+                  disabled={isPending}
                   className={cn(
                     "flex-1 rounded-lg border py-2 text-sm font-medium transition-colors",
                     count === n
                       ? "border-foreground bg-foreground text-background"
                       : "border-border hover:bg-muted/50",
+                    isPending && "opacity-50 pointer-events-none",
                   )}
                 >
                   {n}
@@ -240,21 +273,20 @@ export function SetupDialog({
 
         {/* Sticky footer */}
         <div className="px-6 py-4 border-t shrink-0">
-          <Button
-            className="w-full"
-            onClick={handleStart}
-            disabled={
-              isPending || !effectiveLanguage || availableLanguages.length === 0
-            }
-          >
-            {isPending ? (
-              <>
-                <Loader2 className="size-4 animate-spin" /> Generating...
-              </>
-            ) : (
-              "Start Practice"
-            )}
-          </Button>
+          {isPending ? (
+            <div className="flex flex-col items-center gap-3 py-2">
+              <Loader2 className="size-5 animate-spin text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">{loadingMessage}</p>
+            </div>
+          ) : (
+            <Button
+              className="w-full"
+              onClick={handleStart}
+              disabled={!effectiveLanguage || availableLanguages.length === 0}
+            >
+              Start Practice
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
