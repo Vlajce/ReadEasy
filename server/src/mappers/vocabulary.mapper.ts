@@ -15,10 +15,16 @@ type VocabularyMapperInput = Pick<
   | "targetLanguage"
   | "language"
   | "partOfSpeech"
-  | "contexts"
+  | "exampleSentence"
   | "status"
   | "highlightColor"
   | "bookSnapshot"
+  | "reviewCount"
+  | "correctCount"
+  | "incorrectCount"
+  | "consecutiveIncorrect"
+  | "lastReviewedAt"
+  | "statusHistory"
   | "createdAt"
   | "updatedAt"
 >;
@@ -34,7 +40,7 @@ export const toVocabularyEntryDTO = (
   targetLanguage: entry.targetLanguage,
   language: entry.language,
   partOfSpeech: entry.partOfSpeech,
-  contexts: entry.contexts,
+  exampleSentence: entry.exampleSentence,
   status: entry.status,
   highlightColor: entry.highlightColor,
   bookSnapshot: entry.bookSnapshot,
@@ -51,10 +57,21 @@ export const toVocabularyEntryDetailDTO = (
   targetLanguage: entry.targetLanguage,
   language: entry.language,
   partOfSpeech: entry.partOfSpeech,
-  contexts: entry.contexts,
+  exampleSentence: entry.exampleSentence,
   status: entry.status,
   highlightColor: entry.highlightColor,
   bookSnapshot: entry.bookSnapshot,
+  reviewCount: entry.reviewCount,
+  correctCount: entry.correctCount,
+  incorrectCount: entry.incorrectCount,
+  consecutiveIncorrect: entry.consecutiveIncorrect,
+  lastReviewedAt: entry.lastReviewedAt
+    ? entry.lastReviewedAt.toISOString()
+    : null,
+  statusHistory: (entry.statusHistory ?? []).map((h) => ({
+    status: h.status,
+    changedAt: h.changedAt.toISOString(),
+  })),
   createdAt: entry.createdAt.toISOString(),
   updatedAt: entry.updatedAt.toISOString(),
 });

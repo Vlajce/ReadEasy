@@ -1,4 +1,10 @@
-import { Search, Library, Bookmark, BarChart3 } from "lucide-react";
+import {
+  Search,
+  Library,
+  Bookmark,
+  BarChart3,
+  GraduationCap,
+} from "lucide-react";
 
 export const PAGES = [
   {
@@ -15,6 +21,11 @@ export const PAGES = [
     title: "Vocabulary",
     url: "/vocabulary",
     icon: Bookmark,
+  },
+  {
+    title: "Exercises",
+    url: "/exercises",
+    icon: GraduationCap,
   },
   {
     title: "Progress",

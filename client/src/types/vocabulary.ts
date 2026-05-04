@@ -9,6 +9,7 @@ export interface BookVocabularyWord {
   baseForm: string;
   translation: string;
   partOfSpeech: string;
+  exampleSentence?: string;
 }
 
 // ─── Vocabulary Entry ─────────────────────────────────────────────────────────
@@ -22,8 +23,8 @@ export interface VocabularyEntry {
   targetLanguage: string;
   language: string;
   partOfSpeech: string;
-  contexts: string[];
-  status: VocabularyStatus;
+  exampleSentence?: string;
+  status: "new" | "learning" | "mastered";
   highlightColor: HighlightColor;
   bookSnapshot: {
     title: string;
@@ -40,13 +41,22 @@ export interface VocabularyEntryDetail {
   targetLanguage: string;
   language: string;
   partOfSpeech: string;
-  contexts: string[];
-  status: VocabularyStatus;
+  exampleSentence?: string;
+  status: "new" | "learning" | "mastered";
   highlightColor: HighlightColor;
   bookSnapshot: {
     title: string;
     author: string;
   };
+  reviewCount: number;
+  correctCount: number;
+  incorrectCount: number;
+  consecutiveIncorrect: number;
+  lastReviewedAt: string | null;
+  statusHistory: Array<{
+    status: "new" | "learning" | "mastered";
+    changedAt: string;
+  }>;
   createdAt: string;
   updatedAt: string;
 }
@@ -70,6 +80,7 @@ export interface CreateVocabularyInput {
   context?: string;
   meaning?: string;
   highlightColor?: HighlightColor;
+  exampleSentence?: string;
 }
 
 export interface SaveVocabularyInput {
@@ -79,6 +90,7 @@ export interface SaveVocabularyInput {
   translation: string;
   baseForm: string;
   partOfSpeech: string;
+  exampleSentence?: string;
   highlightColor?: HighlightColor;
 }
 
@@ -86,6 +98,7 @@ export interface TranslationResult {
   translation: string;
   baseForm: string;
   partOfSpeech: string;
+  exampleSentence?: string;
 }
 
 // ─── Stats ────────────────────────────────────────────────────────────────────

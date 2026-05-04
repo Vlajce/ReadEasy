@@ -125,6 +125,7 @@ const getBookWords = asyncHandler(async (req: Request, res: Response) => {
     baseForm: w.baseForm,
     translation: w.translation,
     partOfSpeech: w.partOfSpeech,
+    exampleSentence: w.exampleSentence,
   }));
 
   return sendSuccess(

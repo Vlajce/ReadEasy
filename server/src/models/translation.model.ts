@@ -7,6 +7,7 @@ export interface ITranslation {
   translation: string;
   baseForm: string;
   partOfSpeech: string;
+  exampleSentence: string;
   sourceLanguage: string;
   targetLanguage: string;
   hitCount: number;
@@ -43,6 +44,12 @@ const translationSchema = new Schema<ITranslation>(
       required: true,
       trim: true,
       lowercase: true,
+    },
+    exampleSentence: {
+      type: String,
+      required: true,
+      trim: true,
+      default: "",
     },
     sourceLanguage: {
       type: String,

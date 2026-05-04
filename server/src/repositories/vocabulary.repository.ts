@@ -4,7 +4,6 @@ import {
   type IVocabularyEntry,
 } from "../models/vocabulary.model.js";
 import type {
-  CreateVocabularyInput,
   UpdateVocabularyInput,
   FindVocabularyQueryInput,
 } from "../validation/vocabulary.schema.js";
@@ -19,6 +18,9 @@ type CreateEntryData = Omit<
   | "reviewCount"
   | "lastReviewedAt"
   | "statusHistory"
+  | "correctCount"
+  | "incorrectCount"
+  | "consecutiveIncorrect"
 >;
 
 const createEntry = async (
@@ -166,10 +168,13 @@ const findBookWords = async (
     baseForm: string;
     translation: string;
     partOfSpeech: string;
+    exampleSentence: string;
   }[]
 > => {
   return VocabularyEntry.find({ userId, bookId })
-    .select("word highlightColor baseForm translation partOfSpeech -_id")
+    .select(
+      "word highlightColor baseForm translation partOfSpeech exampleSentence -_id",
+    )
     .lean()
     .exec();
 };
@@ -307,6 +312,128 @@ const getLanguageStatsData = async (
   ]).exec();
 };
 
+const getWordsForExercises = async (
+  userId: string,
+  language: string,
+  mode: "smart_mix" | "new_only" | "learning_only" | "all",
+  count: number,
+): Promise<IVocabularyEntry[]> => {
+  const baseFilter = { userId, language };
+
+  if (mode === "new_only") {
+    return VocabularyEntry.find({ ...baseFilter, status: "new" })
+      .sort({ lastReviewedAt: 1 })
+      .limit(count)
+      .select(EXCLUDE_FIELDS)
+      .lean()
+      .exec();
+  }
+
+  if (mode === "learning_only") {
+    return VocabularyEntry.find({ ...baseFilter, status: "learning" })
+      .sort({ lastReviewedAt: 1 })
+      .limit(count)
+      .select(EXCLUDE_FIELDS)
+      .lean()
+      .exec();
+  }
+
+  if (mode === "all") {
+    return VocabularyEntry.find(baseFilter)
+      .sort({ lastReviewedAt: 1 })
+      .limit(count)
+      .select(EXCLUDE_FIELDS)
+      .lean()
+      .exec();
+  }
+
+  // smart_mix
+  const learningTarget = Math.round(count * 0.5);
+  const newTarget = Math.round(count * 0.3);
+  const masteredTarget = Math.max(0, count - learningTarget - newTarget);
+
+  const [learningWords, newWords, masteredWords] = await Promise.all([
+    VocabularyEntry.find({ ...baseFilter, status: "learning" })
+      .sort({ lastReviewedAt: 1 })
+      .limit(learningTarget)
+      .select(EXCLUDE_FIELDS)
+      .lean()
+      .exec(),
+    VocabularyEntry.find({ ...baseFilter, status: "new" })
+      .sort({ lastReviewedAt: 1 })
+      .limit(newTarget)
+      .select(EXCLUDE_FIELDS)
+      .lean()
+      .exec(),
+    VocabularyEntry.find({ ...baseFilter, status: "mastered" })
+      .sort({ lastReviewedAt: 1 })
+      .limit(masteredTarget)
+      .select(EXCLUDE_FIELDS)
+      .lean()
+      .exec(),
+  ]);
+
+  const collected = [...learningWords, ...newWords, ...masteredWords];
+  const deficit = count - collected.length;
+
+  if (deficit <= 0) return collected;
+
+  // Redistribution — fill the deficit from learning → new → mastered
+  const collectedIds = collected.map((w) => w._id.toString());
+
+  const extra = await VocabularyEntry.find({
+    ...baseFilter,
+    _id: { $nin: collectedIds },
+  })
+    .limit(deficit)
+    .select(EXCLUDE_FIELDS)
+    .lean()
+    .exec();
+
+  return [...collected, ...extra].slice(0, count);
+};
+
+const updateReviewResult = async (
+  entryId: string,
+  userId: string,
+  correct: boolean,
+): Promise<IVocabularyEntry | null> => {
+  const update = correct
+    ? {
+        $inc: { reviewCount: 1, correctCount: 1 },
+        $set: { consecutiveIncorrect: 0, lastReviewedAt: new Date() },
+      }
+    : {
+        $inc: { reviewCount: 1, incorrectCount: 1, consecutiveIncorrect: 1 },
+        $set: { lastReviewedAt: new Date() },
+      };
+
+  return VocabularyEntry.findOneAndUpdate({ _id: entryId, userId }, update, {
+    returnDocument: "after",
+  })
+    .select(EXCLUDE_FIELDS)
+    .lean()
+    .exec();
+};
+
+const appendStatusHistory = async (
+  entryId: string,
+  userId: string,
+  status: "new" | "learning" | "mastered",
+): Promise<IVocabularyEntry | null> => {
+  return VocabularyEntry.findOneAndUpdate(
+    { _id: entryId, userId },
+    {
+      $set: { status },
+      $push: { statusHistory: { status, changedAt: new Date() } },
+    },
+    { returnDocument: "after" },
+  )
+    .select(EXCLUDE_FIELDS)
+    .lean()
+    .exec();
+};
+
 export const vocabularyRepository = {
   createEntry,
   findEntry,
@@ -319,4 +446,7 @@ export const vocabularyRepository = {
   getOverviewStatsData,
   getActivityStatsData,
   getLanguageStatsData,
+  getWordsForExercises,
+  updateReviewResult,
+  appendStatusHistory,
 };

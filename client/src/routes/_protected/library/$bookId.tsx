@@ -195,10 +195,11 @@ function Popover({ book }: { book: BookDetail }) {
       {
         word: selectedText.trim(),
         bookId: book.id,
-        sentence: extractedSentence, // ← uvek ispravna vrednost
+        sentence: extractedSentence,
         translation: editedTranslation,
         baseForm: translationResult.baseForm,
         partOfSpeech: translationResult.partOfSpeech,
+        exampleSentence: translationResult.exampleSentence,
         highlightColor: selectedColor,
       },
       {
@@ -279,6 +280,14 @@ function Popover({ book }: { book: BookDetail }) {
                 {translationResult.partOfSpeech}
               </p>
             </div>
+            {translationResult.exampleSentence && (
+              <div className="flex flex-col gap-1">
+                <p className="text-sm text-muted-foreground">Example</p>
+                <p className="text-sm italic text-foreground/80">
+                  &ldquo;{translationResult.exampleSentence}&rdquo;
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5">
@@ -332,6 +341,14 @@ function Popover({ book }: { book: BookDetail }) {
               <p className="text-sm text-muted-foreground">Part of speech</p>
               <p className="text-sm font-medium">{savedEntry.partOfSpeech}</p>
             </div>
+            {savedEntry.exampleSentence && (
+              <div className="flex flex-col gap-1">
+                <p className="text-sm text-muted-foreground">Example</p>
+                <p className="text-sm italic text-foreground/80">
+                  &ldquo;{savedEntry.exampleSentence}&rdquo;
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5 pt-1">

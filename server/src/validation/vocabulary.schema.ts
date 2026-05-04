@@ -35,6 +35,7 @@ export const createVocabularySchema = z.object({
     .transform((val) => val.trim().toLowerCase()),
   bookId: z.string().regex(objectIdRegex),
   contexts: z.array(z.string().trim().min(1)).min(1),
+  exampleSentence: z.string().trim().min(1).max(300).optional().default(""),
   status: z.enum(["new", "learning", "mastered"]).default("new"),
   highlightColor: z
     .enum(["yellow", "green", "blue", "pink", "purple"])
@@ -121,6 +122,7 @@ export const aiTranslationResponseSchema = z.object({
   translation: z.string().trim().min(1),
   baseForm: z.string().trim().min(1),
   partOfSpeech: z.string().trim().min(1).default("unknown"),
+  exampleSentence: z.string().trim().min(1),
 });
 
 export const saveVocabularySchema = z.object({
@@ -145,6 +147,7 @@ export const saveVocabularySchema = z.object({
     .min(1)
     .max(50)
     .transform((val) => val.toLowerCase()),
+  exampleSentence: z.string().trim().min(1).max(300),
   highlightColor: z
     .enum(["yellow", "green", "blue", "pink", "purple"])
     .optional(),
