@@ -492,13 +492,15 @@ function VocabularyContainer({
                         </div>
                         <div className="text-sm text-muted-foreground">
                           <span className="font-medium text-foreground">
-                            Contexts:
+                            Example:
                           </span>{" "}
-                          {entry.contexts.length ? (
-                            entry.contexts.join(" | ")
+                          {entry.exampleSentence ? (
+                            <span className="italic">
+                              "{entry.exampleSentence}"
+                            </span>
                           ) : (
                             <span className="italic">
-                              No contexts added yet.
+                              No examples added yet.
                             </span>
                           )}
                         </div>

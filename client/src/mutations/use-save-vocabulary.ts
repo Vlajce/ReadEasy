@@ -3,24 +3,26 @@ import type {
   SaveVocabularyInput,
   VocabularyEntryDetail,
 } from "@/types/vocabulary";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export function useSaveVocabulary() {
+  const queryClient = useQueryClient(); // ← ovako se dobija queryClient
+
   return useMutation({
     mutationFn: (data: SaveVocabularyInput) =>
       apiClient.post<VocabularyEntryDetail>("/vocabulary/save", data),
 
-    onSuccess: (_data, variables, _onMutateResult, context) => {
-      context.client.invalidateQueries({
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
         queryKey: ["vocabulary", "books", variables.bookId, "words"],
       });
 
-      context.client.invalidateQueries({
+      queryClient.invalidateQueries({
         queryKey: ["vocabulary", "entries"],
       });
 
-      context.client.invalidateQueries({
+      queryClient.invalidateQueries({
         queryKey: ["vocabulary", "stats"],
       });
 
