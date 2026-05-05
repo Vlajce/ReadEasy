@@ -38,24 +38,30 @@ export function DailyActivityChart({
     date: string;
   }> = (() => {
     if (days === 7) {
-      const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-      const dataMap: Map<string, { value: number; date: string }> = new Map();
+      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+      // Napravi mapu: dateString -> wordsAdded
+      const dataMap = new Map<string, number>();
       filteredData.forEach((item: ActivityStatsItem) => {
-        const date = new Date(item.date);
-        const dayIndex = date.getUTCDay();
-        const dayName = dayNames[dayIndex === 0 ? 6 : dayIndex - 1];
-        dataMap.set(dayName, { value: item.wordsAdded, date: item.date });
+        dataMap.set(item.date, item.wordsAdded);
       });
 
-      return dayNames.map((day) => {
-        const data = dataMap.get(day);
-        return {
-          name: day,
-          value: data?.value || 0,
-          date: data?.date || "",
-        };
-      });
+      // Generiši poslednjih 7 dana od danas, od najstarijeg do najnovijeg
+      const result = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setUTCDate(d.getUTCDate() - i); // i dana unazad
+        const dateStr = d.toISOString().split("T")[0]; // "2025-05-04"
+        const dayName = dayNames[d.getUTCDay()];
+
+        result.push({
+          name: dayName,
+          value: dataMap.get(dateStr) || 0,
+          date: dateStr,
+        });
+      }
+
+      return result;
     } else {
       return filteredData.map((item: ActivityStatsItem) => {
         const date = new Date(item.date);
