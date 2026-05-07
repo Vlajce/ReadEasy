@@ -27,3 +27,6 @@ Thumbs.db
 
 # Ignore temporary files
 **/import-log.json
+
+# Local project documentation (developer-specific)
+CLAUDE.md
