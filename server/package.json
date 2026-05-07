@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "import-books": "tsx src/scripts/import-books.ts"
+    "import-books": "tsx src/scripts/import-books.ts",
+    "seed-admin": "tsx src/scripts/seed-admin.ts"
   },
   "keywords": [],
   "author": "",

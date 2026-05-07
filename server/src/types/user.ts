@@ -9,7 +9,7 @@ export interface UserDTO {
   id: string;
   username: string;
   email: string;
-  nativeLanguage?: string;
+  nativeLanguage: string;
   readingBooks?: ReadingBook[];
   createdAt: string;
   updatedAt: string;

@@ -20,6 +20,11 @@ requiredEnvVars.forEach((key) => {
 });
 
 const config = {
+  admin: {
+    email: process.env.ADMIN_EMAIL,
+    password: process.env.ADMIN_PASSWORD,
+    username: process.env.ADMIN_USERNAME || "admin",
+  },
   env: process.env.NODE_ENV || "development",
   port: parseInt(process.env.PORT || "3000", 10),
   clientOrigin: process.env.CLIENT_ORIGIN!.split(","),

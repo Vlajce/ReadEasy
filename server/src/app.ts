@@ -1,5 +1,6 @@
 import express from "express";
 import cookieParser from "cookie-parser";
+import { adminRoutes } from "./routes/admin.routes.js";
 import { authRoutes } from "./routes/auth.routes.js";
 import { userRoutes } from "./routes/user.routes.js";
 import { bookRoutes } from "./routes/book.routes.js";
@@ -19,6 +20,7 @@ app.use(corsConfig);
 app.use(globalLimiter);
 
 // Routes
+app.use("/admin", adminRoutes);
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/books", bookRoutes);
