@@ -131,8 +131,12 @@ function SidebarUserMenu() {
                 Change Language
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => logout()} disabled={isPending}>
-                <LogOut />
+              <DropdownMenuItem
+                onClick={() => logout()}
+                disabled={isPending}
+                className="text-red-600"
+              >
+                <LogOut className="text-red-600" />
                 Logout
               </DropdownMenuItem>
             </DropdownMenuContent>
