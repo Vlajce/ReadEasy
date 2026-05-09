@@ -52,7 +52,7 @@ export function AdminStatCard({
         </div>
         <p className="mt-3 text-sm text-muted-foreground">{description}</p>
       </div>
-      <div className="absolute bottom-0 left-0 h-1.5 w-full bg-gradient-to-r from-slate-200 to-slate-300 opacity-40" />
+      <div className="absolute bottom-0 left-0 h-1.5 w-full bg-linear-to-r from-slate-200 to-slate-300 opacity-40" />
     </div>
   );
 }

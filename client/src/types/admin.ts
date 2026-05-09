@@ -1,3 +1,5 @@
+import type { ReadingBook } from "./user";
+
 export interface AdminUser {
   id: string;
   username: string;
@@ -6,6 +8,7 @@ export interface AdminUser {
   isBanned: boolean;
   nativeLanguage: string | null;
   createdAt: string;
+  readingBooks: ReadingBook[];
 }
 
 export interface AdminStatsOverview {
@@ -31,4 +34,15 @@ export interface AdminStats {
   overview: AdminStatsOverview;
   topBooks: AdminTopBook[];
   topWords: AdminTopWord[];
+}
+
+export interface AdminUserByStatus {
+  new: number;
+  learning: number;
+  mastered: number;
+}
+
+export interface AdminUserStats {
+  totalWords: number;
+  byStatus: AdminUserByStatus;
 }

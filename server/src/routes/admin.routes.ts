@@ -8,9 +8,18 @@ const router = Router();
 router.use(isAuthenticated, isAdmin);
 
 router.get("/users", adminController.getUsers);
+router.get(
+  "/users/:id/stats",
+  validateObjectId("id"),
+  adminController.getUserStats,
+);
 router.delete("/users/:id", validateObjectId("id"), adminController.deleteUser);
 router.patch("/users/:id/ban", validateObjectId("id"), adminController.banUser);
-router.patch("/users/:id/unban", validateObjectId("id"), adminController.unbanUser);
+router.patch(
+  "/users/:id/unban",
+  validateObjectId("id"),
+  adminController.unbanUser,
+);
 router.get("/stats", adminController.getStats);
 
 export const adminRoutes = router;

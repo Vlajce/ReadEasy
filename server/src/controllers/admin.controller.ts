@@ -8,7 +8,9 @@ import { BadRequestError } from "../errors/bad-request.error.js";
 
 const getUsers = asyncHandler(async (req: Request, res: Response) => {
   const users = await User.find()
-    .select("username email role isBanned nativeLanguage createdAt")
+    .select(
+      "username email role isBanned nativeLanguage createdAt readingBooks",
+    )
     .sort({ createdAt: -1 })
     .lean()
     .exec();
@@ -21,6 +23,7 @@ const getUsers = asyncHandler(async (req: Request, res: Response) => {
     isBanned: u.isBanned,
     nativeLanguage: u.nativeLanguage ?? null,
     createdAt: u.createdAt,
+    readingBooks: u.readingBooks ?? [],
   }));
 
   return sendSuccess(res, data, "Users fetched successfully", 200);
@@ -161,10 +164,41 @@ const getStats = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
+const getUserStats = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const user = await User.findById(id).select("_id").lean().exec();
+  if (!user) throw new NotFoundError("User not found");
+
+  const [statusCounts, totalWords] = await Promise.all([
+    VocabularyEntry.aggregate([
+      { $match: { userId: user._id } },
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+    ]).exec(),
+
+    VocabularyEntry.countDocuments({ userId: id }).exec(),
+  ]);
+
+  const byStatus = { new: 0, learning: 0, mastered: 0 };
+  for (const item of statusCounts) {
+    if (item._id in byStatus) {
+      byStatus[item._id as keyof typeof byStatus] = item.count;
+    }
+  }
+
+  return sendSuccess(
+    res,
+    { totalWords, byStatus },
+    "User stats fetched successfully",
+    200,
+  );
+});
+
 export const adminController = {
   getUsers,
   deleteUser,
   banUser,
   unbanUser,
   getStats,
+  getUserStats,
 };

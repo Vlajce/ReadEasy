@@ -47,7 +47,7 @@ export function AdminStatGrid({ stats, isLoading }: AdminStatGridProps) {
       description: "Active users on the platform",
       icon: <Users className="size-5" />,
       accent: "emerald" as const,
-      badgeLabel: "Live",
+      badgeLabel: "Active",
     },
     {
       title: "Words Saved",
