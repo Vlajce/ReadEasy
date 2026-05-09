@@ -1,10 +1,6 @@
-export type AdminTimeRange = "24h" | "7d" | "30d";
-
 interface AdminPageHeaderProps {
   title: string;
   description: string;
-  range: AdminTimeRange;
-  onRangeChange: (range: AdminTimeRange) => void;
 }
 
 export function AdminPageHeader({ title, description }: AdminPageHeaderProps) {

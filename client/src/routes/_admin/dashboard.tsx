@@ -6,10 +6,7 @@ import { getAdminStatsQueryOptions } from "@/query-options/get-admin-stats-query
 import { getAdminUsersQueryOptions } from "@/query-options/get-admin-users-query-options";
 import { Input } from "@/components/ui/input";
 import { AdminTopNav } from "@/components/admin/admin-top-nav";
-import {
-  AdminPageHeader,
-  type AdminTimeRange,
-} from "@/components/admin/admin-page-header";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import {
   AdminSectionTabs,
   type AdminSectionTab,
@@ -26,7 +23,6 @@ export const Route = createFileRoute("/_admin/dashboard")({
 });
 
 function DashboardPage() {
-  const [range, setRange] = useState<AdminTimeRange>("30d");
   const [activeTab, setActiveTab] = useState<AdminSectionTab>("users");
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -42,10 +38,8 @@ function DashboardPage() {
       <AdminTopNav />
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <AdminPageHeader
-          title="Network Overview"
-          description="System health and user engagement analytics."
-          range={range}
-          onRangeChange={setRange}
+          title="Admin Dashboard "
+          description="An overview of users, reading activity, and vocabulary trends."
         />
 
         <AdminStatGrid stats={stats} isLoading={statsLoading} />

@@ -26,9 +26,6 @@ export function AdminTopNav() {
             <span className="text-base font-semibold leading-none">
               ReadEasy
             </span>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-              Admin Dashboard
-            </span>
           </div>
         </div>
 

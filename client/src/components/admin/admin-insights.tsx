@@ -1,21 +1,9 @@
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip as RechartsTooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { BookOpen, Trophy } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import type { AdminStats } from "@/types/admin";
+import { getLanguageName } from "@/lib/languages";
 
 interface AdminInsightsProps {
   stats?: AdminStats;
@@ -24,138 +12,204 @@ interface AdminInsightsProps {
 
 const numberFormatter = new Intl.NumberFormat("en-US");
 
+// Podijum boje — gold, silver, bronze
+const rankStyles = {
+  badge: [
+    "bg-amber-100 text-amber-600", // 🥇 gold
+    "bg-slate-200 text-slate-600", // 🥈 silver
+    "bg-orange-900/15 text-orange-900", // 🥉 bronze
+  ],
+  bar: [
+    "bg-amber-500", // 🥇 gold
+    "bg-slate-400", // 🥈 silver
+    "bg-orange-800", // 🥉 bronze
+  ],
+  default: {
+    badge: "bg-slate-100 text-slate-500",
+    bar: "bg-slate-300",
+  },
+};
+
+function getRankBadge(index: number) {
+  return rankStyles.badge[index] ?? rankStyles.default.badge;
+}
+
+function getRankBar(index: number) {
+  return rankStyles.bar[index] ?? rankStyles.default.bar;
+}
+
 export function AdminInsights({ stats, isLoading }: AdminInsightsProps) {
   if (isLoading || !stats) {
     return (
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {Array.from({ length: 2 }).map((_, index) => (
-          <Card key={`admin-insights-skeleton-${index}`} className="p-6">
+          <div
+            key={`admin-insights-skeleton-${index}`}
+            className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+          >
             <Skeleton className="h-5 w-40" />
             <Skeleton className="mt-2 h-3 w-56" />
-            <Skeleton className="mt-6 h-64 w-full" />
-          </Card>
+            <div className="mt-6 space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full rounded-2xl" />
+              ))}
+            </div>
+          </div>
         ))}
       </div>
     );
   }
 
-  const chartData = stats.topBooks.map((book) => ({
-    name: book.title,
-    readers: book.readerCount,
-  }));
+  const maxReaderCount = stats.topBooks[0]?.readerCount ?? 1;
   const maxWordCount = stats.topWords[0]?.userCount ?? 1;
 
   return (
-    <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-      <Card className="rounded-3xl border-slate-200 p-6 shadow-sm">
-        <CardHeader className="px-0 pt-0">
-          <CardTitle className="text-xl font-semibold">
-            Most Read Books
-          </CardTitle>
-          <CardDescription>
-            Books currently being read by users.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-0">
-          <div className="h-90">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={chartData}
-                layout="vertical"
-                margin={{ left: 10, right: 24 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  horizontal={false}
-                  stroke="hsl(var(--muted)/0.4)"
-                />
-                <XAxis type="number" hide />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  tick={{ fontSize: 11, fontWeight: 500, fill: "#64748b" }}
-                  width={140}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <RechartsTooltip
-                  cursor={{ fill: "#f1f5f9" }}
-                  formatter={(value: number) => [
-                    numberFormatter.format(value),
-                    "Readers",
-                  ]}
-                  contentStyle={{
-                    backgroundColor: "white",
-                    borderRadius: "16px",
-                    border: "1px solid #e2e8f0",
-                    boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                    padding: "12px 16px",
-                  }}
-                />
-                <Bar
-                  dataKey="readers"
-                  fill="#0f172a"
-                  radius={[0, 8, 8, 0]}
-                  barSize={24}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {/* Most Read Books */}
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-6">
+          <div className="flex items-center gap-2">
+            <BookOpen className="size-5 text-slate-700" />
+            <h3 className="text-xl font-semibold text-slate-900">
+              Most Read Books
+            </h3>
           </div>
-        </CardContent>
-      </Card>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Books currently being read by users.
+          </p>
+        </div>
 
-      <Card className="rounded-3xl border-slate-200 p-6 shadow-sm">
-        <CardHeader className="px-0 pt-0">
-          <CardTitle className="text-xl font-semibold">
-            Most Saved Words
-          </CardTitle>
-          <CardDescription>
-            Words most frequently saved across all users.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-0">
-          <div className="max-h-90 space-y-4 overflow-auto pr-2">
-            {stats.topWords.map((item, index) => (
+        {stats.topBooks.length === 0 ? (
+          <div className="rounded-2xl border-2 border-dashed border-slate-100 p-8 text-center">
+            <p className="text-sm italic text-slate-400">No data yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {stats.topBooks.map((book, index) => (
               <div
-                key={`${item.baseForm}-${item.language}`}
-                className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300"
+                key={book.id ?? book.title}
+                className="group flex items-center gap-4 rounded-2xl border border-slate-100 bg-slate-50/50 p-4 transition hover:border-slate-200 hover:bg-slate-50"
               >
-                <div className="flex items-center gap-4">
-                  <span className="flex size-8 items-center justify-center rounded-xl bg-slate-100 text-[11px] font-semibold text-slate-700">
-                    {index + 1}
-                  </span>
-                  <div>
-                    <div className="text-lg font-semibold text-slate-900">
-                      {item.baseForm}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {item.translation}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <div className="text-sm font-semibold text-slate-900">
-                      {numberFormatter.format(item.userCount)}
-                    </div>
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                      Learners
-                    </div>
-                  </div>
-                  <div className="h-9 w-1.5 overflow-hidden rounded-full bg-slate-100">
+                {/* Rank */}
+                <span
+                  className={cn(
+                    "flex size-8 shrink-0 items-center justify-center rounded-xl text-[11px] font-black",
+                    getRankBadge(index),
+                  )}
+                >
+                  {index === 0 ? <Trophy className="size-4" /> : index + 1}
+                </span>
+
+                {/* Info */}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-slate-900">
+                    {book.title}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {book.author}
+                  </p>
+                  {/* Progress bar */}
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
                     <div
-                      className="h-full w-full origin-bottom bg-slate-900"
+                      className={cn(
+                        "h-full rounded-full transition-all duration-700",
+                        getRankBar(index),
+                      )}
                       style={{
-                        height: `${Math.max(12, (item.userCount / maxWordCount) * 100)}%`,
+                        width: `${Math.max(8, (book.readerCount / maxReaderCount) * 100)}%`,
                       }}
                     />
                   </div>
                 </div>
+
+                {/* Count */}
+                <div className="shrink-0 text-right">
+                  <p className="text-sm font-black text-slate-900">
+                    {numberFormatter.format(book.readerCount)}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
+
+      {/* Most Saved Words */}
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-6">
+          <div className="flex items-center gap-2">
+            <Trophy className="size-5 text-slate-700" />
+            <h3 className="text-xl font-semibold text-slate-900">
+              Most Saved Words
+            </h3>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Words most frequently saved across all users.
+          </p>
+        </div>
+
+        {stats.topWords.length === 0 ? (
+          <div className="rounded-2xl border-2 border-dashed border-slate-100 p-8 text-center">
+            <p className="text-sm italic text-slate-400">No data yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {stats.topWords.map((item, index) => (
+              <div
+                key={`${item.baseForm}-${item.language}`}
+                className="group flex items-center gap-4 rounded-2xl border border-slate-100 bg-slate-50/50 p-4 transition hover:border-slate-200 hover:bg-slate-50"
+              >
+                {/* Rank */}
+                <span
+                  className={cn(
+                    "flex size-8 shrink-0 items-center justify-center rounded-xl text-[11px] font-black",
+                    getRankBadge(index),
+                  )}
+                >
+                  {index === 0 ? <Trophy className="size-4" /> : index + 1}
+                </span>
+
+                {/* Info */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-slate-900">
+                      {item.baseForm}
+                    </p>
+                    <Badge
+                      variant="outline"
+                      className="rounded-full px-2 py-0 text-[10px]"
+                    >
+                      {getLanguageName(item.language)}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {item.translation}
+                  </p>
+                  {/* Progress bar */}
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all duration-700",
+                        getRankBar(index),
+                      )}
+                      style={{
+                        width: `${Math.max(8, (item.userCount / maxWordCount) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Count */}
+                <div className="shrink-0 text-right">
+                  <p className="text-sm font-black text-slate-900">
+                    {numberFormatter.format(item.userCount)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
