@@ -16,15 +16,18 @@ export function AdminTopNav() {
   const { mutate: logout, isPending } = useLogout();
 
   return (
-    <nav className="sticky top-0 z-40 w-full border-b border-slate-200/70 bg-white/80 backdrop-blur">
+    <nav className="sticky top-0 z-40 w-full border-b border-slate-700 bg-slate-800">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-xl bg-black text-white shadow-lg shadow-black/10">
+          <div className="flex size-9 items-center justify-center rounded-xl bg-white text-slate-900 shadow-lg shadow-black/20">
             <BookOpen className="size-5" />
           </div>
           <div className="flex flex-col">
-            <span className="text-base font-semibold leading-none">
+            <span className="text-base font-semibold leading-none text-white">
               ReadEasy
+            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+              Admin
             </span>
           </div>
         </div>
@@ -33,7 +36,7 @@ export function AdminTopNav() {
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="flex items-center gap-3 rounded-xl border border-transparent px-2 py-1 text-left transition hover:bg-slate-100"
+              className="flex items-center gap-3 rounded-xl border border-transparent px-2 py-1 text-left transition hover:bg-slate-800"
             >
               <UserInfo
                 username={user?.username ?? "Admin"}
@@ -48,6 +51,7 @@ export function AdminTopNav() {
                 <UserInfo
                   username={user?.username ?? "Admin"}
                   email={user?.email ?? "admin@readeasy.com"}
+                  dark
                 />
               </div>
             </DropdownMenuLabel>
@@ -72,20 +76,30 @@ interface UserInfoProps {
   email: string;
 }
 
-function UserInfo({ username, email }: UserInfoProps) {
+function UserInfo({
+  username,
+  email,
+  dark = false,
+}: UserInfoProps & { dark?: boolean }) {
   return (
     <div className="flex items-center gap-2">
       <Avatar className="h-8 w-8 rounded-lg">
         <AvatarImage src={undefined} alt={username} />
-        <AvatarFallback className="rounded-lg">
+        <AvatarFallback
+          className={`rounded-lg ${dark ? "bg-slate-200 text-slate-700" : "bg-slate-700 text-white"}`}
+        >
           {username.at(0)?.toUpperCase() ?? "A"}
         </AvatarFallback>
       </Avatar>
       <div className="grid flex-1 text-left text-sm leading-tight">
-        <span className="max-w-35 truncate font-medium text-slate-900">
+        <span
+          className={`max-w-35 truncate font-semibold ${dark ? "text-slate-900" : "text-white"}`}
+        >
           {username}
         </span>
-        <span className="max-w-35 truncate text-xs text-muted-foreground">
+        <span
+          className={`max-w-35 truncate text-xs ${dark ? "text-slate-500" : "text-slate-400"}`}
+        >
           {email}
         </span>
       </div>
