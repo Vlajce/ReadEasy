@@ -11,20 +11,36 @@ import { Input } from "@/components/ui/input";
 import { useLogin } from "@/mutations/use-login";
 import { loginSchema, type LoginInput } from "@/schemas/user";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
+import { ShieldAlert } from "lucide-react";
 
 export const Route = createFileRoute("/_public/_auth/login")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    banned: search.banned === "true" || search.banned === true,
+  }),
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  const { banned } = useSearch({ from: "/_public/_auth/login" });
+
   return (
     <>
       <Header />
+      {banned && <BannedMessage />}
       <LoginForm />
       <RegisterLink />
     </>
+  );
+}
+
+function BannedMessage() {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 my-6 text-sm text-red-700">
+      <ShieldAlert className="size-4 shrink-0" />
+      <span>Your account has been suspended. Please contact support.</span>
+    </div>
   );
 }
 
@@ -86,7 +102,7 @@ function LoginForm() {
 
 function RegisterLink() {
   return (
-    <div className="text-center text-sm mt-4">
+    <div className="mt-4 text-center text-sm">
       Don&apos;t have an account?{" "}
       <Link to="/register" className="underline underline-offset-4">
         Register
@@ -97,11 +113,11 @@ function RegisterLink() {
 
 function Header() {
   return (
-    <div className="flex flex-col items-center gap-2 text-center mb-6">
-      <h1 className="text-2xl 2xl:text-3xl font-bold text-primary">
+    <div className="mb-6 flex flex-col items-center gap-2 text-center">
+      <h1 className="text-2xl font-bold text-primary 2xl:text-3xl">
         Login to your account
       </h1>
-      <p className="text-muted-foreground text-balance text-sm 2xl:text-base">
+      <p className="text-balance text-sm text-muted-foreground 2xl:text-base">
         Enter your email below to login to your account
       </p>
     </div>

@@ -16,6 +16,7 @@ import { toUserDTO } from "../mappers/user.mapper.js";
 import type { UserDTO } from "../types/user.js";
 import { isMongoDuplicateError } from "../utils/db.errors.js";
 import { BadRequestError } from "../errors/bad-request.error.js";
+import { ForbiddenError } from "../errors/forbidden.error.js";
 
 const COOKIE_OPTIONS: CookieOptions = {
   httpOnly: true,
@@ -85,6 +86,12 @@ const login = asyncHandler(async (req: Request, res: Response) => {
   const isMatch = await bcrypt.compare(password, foundUser.password);
   if (!isMatch) {
     throw new BadRequestError("Invalid email or password");
+  }
+
+  if (foundUser.isBanned) {
+    throw new ForbiddenError(
+      "Your account has been suspended. Please contact support.",
+    );
   }
 
   const accessToken = signAccessToken(foundUser._id.toString(), foundUser.role);
