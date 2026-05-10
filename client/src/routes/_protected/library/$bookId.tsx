@@ -191,6 +191,8 @@ function Popover({ book }: { book: BookDetail }) {
   const handleSave = () => {
     if (!translationResult || !selectedText.trim()) return;
 
+    closePopover();
+
     saveVocabulary(
       {
         word: selectedText.trim(),
