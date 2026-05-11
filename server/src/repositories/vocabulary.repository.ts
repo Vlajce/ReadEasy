@@ -434,6 +434,80 @@ const appendStatusHistory = async (
     .exec();
 };
 
+const getBookQuizWords = async (
+  bookId: string,
+  userId: string,
+  limit: number = 10,
+): Promise<
+  {
+    baseForm: string;
+    translation: string;
+    language: string;
+    partOfSpeech: string;
+    exampleSentence: string;
+    userCount: number;
+    entryId: string | null;
+    alreadyInVocabulary: boolean;
+  }[]
+> => {
+  const bookObjectId = new Types.ObjectId(bookId);
+  const userObjectId = new Types.ObjectId(userId);
+
+  // The most popular words from this book across all users
+  const popularWords = await VocabularyEntry.aggregate([
+    { $match: { bookId: bookObjectId } },
+    {
+      $group: {
+        _id: { baseForm: "$baseForm", language: "$language" },
+        translation: { $first: "$translation" },
+        partOfSpeech: { $first: "$partOfSpeech" },
+        exampleSentence: { $first: "$exampleSentence" },
+        userCount: { $addToSet: "$userId" },
+      },
+    },
+    {
+      $project: {
+        baseForm: "$_id.baseForm",
+        language: "$_id.language",
+        translation: 1,
+        partOfSpeech: 1,
+        exampleSentence: 1,
+        userCount: { $size: "$userCount" },
+      },
+    },
+    //{ $match: { userCount: { $gte: 2 } } },
+    { $sort: { userCount: -1 } },
+    { $limit: limit },
+  ]).exec();
+
+  if (!popularWords.length) return [];
+
+  // Check which of these words the user already has in their vocabulary
+  const baseForms = popularWords.map((w) => w.baseForm);
+  const userEntries = await VocabularyEntry.find({
+    userId: userObjectId,
+    baseForm: { $in: baseForms },
+  })
+    .select("baseForm entryId _id")
+    .lean()
+    .exec();
+
+  const userEntryMap = new Map(
+    userEntries.map((e) => [e.baseForm, e._id.toString()]),
+  );
+
+  return popularWords.map((w) => ({
+    baseForm: w.baseForm,
+    translation: w.translation,
+    language: w.language,
+    partOfSpeech: w.partOfSpeech,
+    exampleSentence: w.exampleSentence,
+    userCount: w.userCount,
+    entryId: userEntryMap.get(w.baseForm) ?? null,
+    alreadyInVocabulary: userEntryMap.has(w.baseForm),
+  }));
+};
+
 export const vocabularyRepository = {
   createEntry,
   findEntry,
@@ -449,4 +523,5 @@ export const vocabularyRepository = {
   getWordsForExercises,
   updateReviewResult,
   appendStatusHistory,
+  getBookQuizWords,
 };

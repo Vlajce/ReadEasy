@@ -5,6 +5,7 @@ import {
   findVocabularyQuerySchema,
   activityStatsQuerySchema,
   saveVocabularySchema,
+  quizSubmitSchema,
 } from "../validation/vocabulary.schema.js";
 import { asyncHandler } from "../utils/async.handler.js";
 import { sendSuccess } from "../utils/response.handler.js";
@@ -149,6 +150,51 @@ const getStats = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
+const getBookQuiz = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const { bookId } = req.params;
+
+  const quiz = await vocabularyService.getBookQuiz(userId, bookId as string);
+
+  if (!quiz) {
+    return sendSuccess(res, null, "Not enough data for quiz", 200);
+  }
+
+  return sendSuccess(res, quiz, "Quiz fetched successfully", 200);
+});
+
+const submitQuizAnswer = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const { bookId } = req.params;
+  const parsed = quizSubmitSchema.parse(req.body);
+
+  if (parsed.entryId) {
+    // User has the word in vocabulary — progression only if correct,
+    // regression is blocked through fromQuiz flag
+    if (parsed.correct) {
+      await vocabularyService.submitReview(userId, parsed.entryId, true, true);
+    }
+  } else if (parsed.correct) {
+    // User doesn't have the word but got it right — add to vocabulary with minimal info, so they can review and fill in details later
+    await vocabularyService.saveVocabulary(userId, {
+      bookId: bookId as string,
+      word: parsed.word,
+      baseForm: parsed.baseForm,
+      translation: parsed.translation,
+      partOfSpeech: parsed.partOfSpeech,
+      sentence: parsed.exampleSentence || parsed.baseForm,
+      exampleSentence: parsed.exampleSentence,
+    });
+  }
+
+  return sendSuccess(
+    res,
+    { correct: parsed.correct },
+    "Quiz answer submitted",
+    200,
+  );
+});
+
 export const vocabularyController = {
   getVocabularyEntries,
   getVocabularyEntryById,
@@ -158,4 +204,6 @@ export const vocabularyController = {
   deleteVocabularyEntry,
   getBookWords,
   getStats,
+  getBookQuiz,
+  submitQuizAnswer,
 };
