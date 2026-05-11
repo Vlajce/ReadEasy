@@ -154,6 +154,7 @@ export const saveVocabularySchema = z.object({
 });
 
 export const quizSubmitSchema = z.object({
+  bookId: z.string().regex(objectIdRegex),
   word: z.string().trim().min(1).max(100),
   baseForm: z.string().trim().min(1).max(100),
   translation: z.string().trim().min(1).max(500),

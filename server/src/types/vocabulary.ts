@@ -57,6 +57,7 @@ export interface VocabularyEntryDetailDTO {
 }
 
 export interface BookQuizDTO {
+  bookId: string;
   word: string;
   baseForm: string;
   language: string;

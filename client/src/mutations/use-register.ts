@@ -16,7 +16,7 @@ export function useRegister() {
         description: getFormattedDate() + " 📆",
       });
 
-      navigate({ to: "/login" });
+      navigate({ to: "/login", search: { banned: false }, replace: true });
     },
   });
 }

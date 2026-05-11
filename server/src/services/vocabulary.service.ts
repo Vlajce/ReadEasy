@@ -384,7 +384,8 @@ const getBookQuiz = async (
   );
 
   return {
-    word: quizWord.baseForm,
+    bookId,
+    word: quizWord.word,
     baseForm: quizWord.baseForm,
     language: quizWord.language,
     partOfSpeech: quizWord.partOfSpeech,
@@ -401,14 +402,23 @@ const submitQuizAnswer = async (
   data: QuizSubmitInput,
 ): Promise<QuizSubmitResponseDTO> => {
   if (data.entryId) {
-    // User has the word in vocabulary — progression only if correct,
-    // regression is blocked through fromQuiz flag
+    const entry = await vocabularyRepository.findEntryById(
+      data.entryId,
+      userId,
+    );
+    if (!entry) throw new NotFoundError("Vocabulary entry not found");
+
+    if (entry.bookId.toString() !== data.bookId) {
+      throw new BadRequestError("Word does not belong to this book");
+    }
+
     if (data.correct) {
       await submitReview(userId, data.entryId, true, true);
     }
   }
 
-  const shouldPromptSave = !data.entryId && data.correct;
+  // Ponudi save ako nema reči u vokabularu (bez obzira na correct!)
+  const shouldPromptSave = !data.entryId;
 
   return {
     correct: data.correct,

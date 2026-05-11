@@ -440,6 +440,7 @@ const getBookQuizWords = async (
   limit: number = 10,
 ): Promise<
   {
+    word: string;
     baseForm: string;
     translation: string;
     language: string;
@@ -459,6 +460,7 @@ const getBookQuizWords = async (
     {
       $group: {
         _id: { baseForm: "$baseForm", language: "$language" },
+        word: { $first: "$word" },
         translation: { $first: "$translation" },
         partOfSpeech: { $first: "$partOfSpeech" },
         exampleSentence: { $first: "$exampleSentence" },
@@ -467,6 +469,7 @@ const getBookQuizWords = async (
     },
     {
       $project: {
+        word: 1,
         baseForm: "$_id.baseForm",
         language: "$_id.language",
         translation: 1,
@@ -497,6 +500,7 @@ const getBookQuizWords = async (
   );
 
   return popularWords.map((w) => ({
+    word: w.word,
     baseForm: w.baseForm,
     translation: w.translation,
     language: w.language,
