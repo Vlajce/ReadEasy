@@ -25,6 +25,7 @@ interface AdminUsersTableProps {
   users: AdminUser[];
   isLoading: boolean;
   searchTerm: string;
+  dateSortOrder: "asc" | "desc";
 }
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -37,6 +38,7 @@ export function AdminUsersTable({
   users,
   isLoading,
   searchTerm,
+  dateSortOrder,
 }: AdminUsersTableProps) {
   const banUser = useBanUser();
   const unbanUser = useUnbanUser();
@@ -57,16 +59,33 @@ export function AdminUsersTable({
     );
   }, [normalizedSearch, users]);
 
+  const sortedUsers = useMemo(() => {
+    return [...filteredUsers].sort((leftUser, rightUser) => {
+      const leftIsAdmin = leftUser.role === "admin";
+      const rightIsAdmin = rightUser.role === "admin";
+
+      if (leftIsAdmin !== rightIsAdmin) {
+        return leftIsAdmin ? -1 : 1;
+      }
+
+      const leftDate = new Date(leftUser.createdAt).getTime();
+      const rightDate = new Date(rightUser.createdAt).getTime();
+
+      if (leftDate === rightDate) return 0;
+
+      return dateSortOrder === "desc"
+        ? rightDate - leftDate
+        : leftDate - rightDate;
+    });
+  }, [filteredUsers, dateSortOrder]);
+
   const usersPerPage = 10;
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredUsers.length / usersPerPage),
-  );
+  const totalPages = Math.max(1, Math.ceil(sortedUsers.length / usersPerPage));
   const safePage = Math.min(currentPage, totalPages);
   const currentUsers = useMemo(() => {
     const start = (safePage - 1) * usersPerPage;
-    return filteredUsers.slice(start, start + usersPerPage);
-  }, [safePage, filteredUsers]);
+    return sortedUsers.slice(start, start + usersPerPage);
+  }, [safePage, sortedUsers]);
 
   const isMutating =
     banUser.isPending || unbanUser.isPending || deleteUser.isPending;
@@ -278,20 +297,20 @@ export function AdminUsersTable({
             <span>
               Showing results{" "}
               <span className="font-semibold text-slate-900">
-                {filteredUsers.length === 0
+                {sortedUsers.length === 0
                   ? 0
                   : (safePage - 1) * usersPerPage + 1}
               </span>{" "}
               —{" "}
               <span className="font-semibold text-slate-900">
-                {Math.min(safePage * usersPerPage, filteredUsers.length)}
+                {Math.min(safePage * usersPerPage, sortedUsers.length)}
               </span>
             </span>
             <span className="hidden h-4 w-px bg-slate-200 sm:block" />
             <span>
               Total:{" "}
               <span className="font-semibold text-slate-900">
-                {filteredUsers.length}
+                {sortedUsers.length}
               </span>
             </span>
           </div>
