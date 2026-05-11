@@ -68,6 +68,11 @@ export interface BookQuizDTO {
   entryId?: string;
 }
 
+export interface QuizSubmitResponseDTO {
+  correct: boolean;
+  shouldPromptSave: boolean;
+}
+
 export interface PaginatedVocabularyDTO {
   data: VocabularyEntryDTO[];
   meta: {

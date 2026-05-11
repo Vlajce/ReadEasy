@@ -11,6 +11,7 @@ import type {
   UpdateVocabularyInput,
   FindVocabularyQueryInput,
   SaveVocabularyInput,
+  QuizSubmitInput,
 } from "../validation/vocabulary.schema.js";
 import type {
   OverviewStats,
@@ -20,6 +21,7 @@ import type {
   LanguageStatsItem,
   StatsResponse,
   BookQuizDTO,
+  QuizSubmitResponseDTO,
 } from "../types/vocabulary.js";
 import { normalizeSentence, normalizeWord } from "../utils/normalization.js";
 
@@ -394,6 +396,26 @@ const getBookQuiz = async (
   };
 };
 
+const submitQuizAnswer = async (
+  userId: string,
+  data: QuizSubmitInput,
+): Promise<QuizSubmitResponseDTO> => {
+  if (data.entryId) {
+    // User has the word in vocabulary — progression only if correct,
+    // regression is blocked through fromQuiz flag
+    if (data.correct) {
+      await submitReview(userId, data.entryId, true, true);
+    }
+  }
+
+  const shouldPromptSave = !data.entryId && data.correct;
+
+  return {
+    correct: data.correct,
+    shouldPromptSave,
+  };
+};
+
 export const vocabularyService = {
   getEntries,
   getEntryById,
@@ -408,4 +430,5 @@ export const vocabularyService = {
   getStats,
   submitReview,
   getBookQuiz,
+  submitQuizAnswer,
 };

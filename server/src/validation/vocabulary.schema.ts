@@ -164,7 +164,13 @@ export const quizSubmitSchema = z.object({
   entryId: z.string().regex(objectIdRegex).optional(),
 });
 
+export const quizSubmitResponseSchema = z.object({
+  correct: z.boolean(),
+  shouldPromptSave: z.boolean(),
+});
+
 export type QuizSubmitInput = z.infer<typeof quizSubmitSchema>;
+export type QuizSubmitResponse = z.infer<typeof quizSubmitResponseSchema>;
 
 export type CreateVocabularyInput = z.infer<typeof createVocabularySchema>;
 export type UpdateVocabularyInput = z.infer<typeof updateVocabularySchema>;

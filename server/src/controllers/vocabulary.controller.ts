@@ -6,6 +6,7 @@ import {
   activityStatsQuerySchema,
   saveVocabularySchema,
   quizSubmitSchema,
+  quizSubmitResponseSchema,
 } from "../validation/vocabulary.schema.js";
 import { asyncHandler } from "../utils/async.handler.js";
 import { sendSuccess } from "../utils/response.handler.js";
@@ -13,6 +14,7 @@ import type {
   PaginatedVocabularyDTO,
   BookVocabularyWordDTO,
   StatsResponse,
+  QuizSubmitResponseDTO,
 } from "../types/vocabulary.js";
 import {
   toVocabularyEntryDetailDTO,
@@ -165,31 +167,14 @@ const getBookQuiz = asyncHandler(async (req: Request, res: Response) => {
 
 const submitQuizAnswer = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user!.userId;
-  const { bookId } = req.params;
   const parsed = quizSubmitSchema.parse(req.body);
 
-  if (parsed.entryId) {
-    // User has the word in vocabulary — progression only if correct,
-    // regression is blocked through fromQuiz flag
-    if (parsed.correct) {
-      await vocabularyService.submitReview(userId, parsed.entryId, true, true);
-    }
-  } else if (parsed.correct) {
-    // User doesn't have the word but got it right — add to vocabulary with minimal info, so they can review and fill in details later
-    await vocabularyService.saveVocabulary(userId, {
-      bookId: bookId as string,
-      word: parsed.word,
-      baseForm: parsed.baseForm,
-      translation: parsed.translation,
-      partOfSpeech: parsed.partOfSpeech,
-      sentence: parsed.exampleSentence || parsed.baseForm,
-      exampleSentence: parsed.exampleSentence,
-    });
-  }
+  const response = await vocabularyService.submitQuizAnswer(userId, parsed);
+  const validatedResponse = quizSubmitResponseSchema.parse(response);
 
-  return sendSuccess(
+  return sendSuccess<QuizSubmitResponseDTO>(
     res,
-    { correct: parsed.correct },
+    validatedResponse,
     "Quiz answer submitted",
     200,
   );
