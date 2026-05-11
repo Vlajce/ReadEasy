@@ -11,11 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PublicRouteRouteImport } from './routes/_public/route'
 import { Route as ProtectedRouteRouteImport } from './routes/_protected/route'
+import { Route as AdminRouteRouteImport } from './routes/_admin/route'
 import { Route as PublicIndexRouteImport } from './routes/_public/index'
 import { Route as ProtectedVocabularyRouteImport } from './routes/_protected/vocabulary'
 import { Route as ProtectedStatsRouteImport } from './routes/_protected/stats'
 import { Route as ProtectedExploreRouteImport } from './routes/_protected/explore'
 import { Route as ProtectedExercisesRouteImport } from './routes/_protected/exercises'
+import { Route as AdminDashboardRouteImport } from './routes/_admin/dashboard'
 import { Route as PublicAuthRouteRouteImport } from './routes/_public/_auth/route'
 import { Route as ProtectedLibraryRouteRouteImport } from './routes/_protected/library/route'
 import { Route as ProtectedLibraryIndexRouteImport } from './routes/_protected/library/index'
@@ -29,6 +31,10 @@ const PublicRouteRoute = PublicRouteRouteImport.update({
 } as any)
 const ProtectedRouteRoute = ProtectedRouteRouteImport.update({
   id: '/_protected',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRouteRoute = AdminRouteRouteImport.update({
+  id: '/_admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PublicIndexRoute = PublicIndexRouteImport.update({
@@ -55,6 +61,11 @@ const ProtectedExercisesRoute = ProtectedExercisesRouteImport.update({
   id: '/exercises',
   path: '/exercises',
   getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const AdminDashboardRoute = AdminDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AdminRouteRoute,
 } as any)
 const PublicAuthRouteRoute = PublicAuthRouteRouteImport.update({
   id: '/_auth',
@@ -89,6 +100,7 @@ const ProtectedLibraryBookIdRoute = ProtectedLibraryBookIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
   '/library': typeof ProtectedLibraryRouteRouteWithChildren
+  '/dashboard': typeof AdminDashboardRoute
   '/exercises': typeof ProtectedExercisesRoute
   '/explore': typeof ProtectedExploreRoute
   '/stats': typeof ProtectedStatsRoute
@@ -100,6 +112,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
+  '/dashboard': typeof AdminDashboardRoute
   '/exercises': typeof ProtectedExercisesRoute
   '/explore': typeof ProtectedExploreRoute
   '/stats': typeof ProtectedStatsRoute
@@ -111,10 +124,12 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/_admin': typeof AdminRouteRouteWithChildren
   '/_protected': typeof ProtectedRouteRouteWithChildren
   '/_public': typeof PublicRouteRouteWithChildren
   '/_protected/library': typeof ProtectedLibraryRouteRouteWithChildren
   '/_public/_auth': typeof PublicAuthRouteRouteWithChildren
+  '/_admin/dashboard': typeof AdminDashboardRoute
   '/_protected/exercises': typeof ProtectedExercisesRoute
   '/_protected/explore': typeof ProtectedExploreRoute
   '/_protected/stats': typeof ProtectedStatsRoute
@@ -130,6 +145,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/library'
+    | '/dashboard'
     | '/exercises'
     | '/explore'
     | '/stats'
@@ -141,6 +157,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/dashboard'
     | '/exercises'
     | '/explore'
     | '/stats'
@@ -151,10 +168,12 @@ export interface FileRouteTypes {
     | '/library'
   id:
     | '__root__'
+    | '/_admin'
     | '/_protected'
     | '/_public'
     | '/_protected/library'
     | '/_public/_auth'
+    | '/_admin/dashboard'
     | '/_protected/exercises'
     | '/_protected/explore'
     | '/_protected/stats'
@@ -167,6 +186,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  AdminRouteRoute: typeof AdminRouteRouteWithChildren
   ProtectedRouteRoute: typeof ProtectedRouteRouteWithChildren
   PublicRouteRoute: typeof PublicRouteRouteWithChildren
 }
@@ -185,6 +205,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof ProtectedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_admin': {
+      id: '/_admin'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AdminRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_public/': {
@@ -221,6 +248,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/exercises'
       preLoaderRoute: typeof ProtectedExercisesRouteImport
       parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_admin/dashboard': {
+      id: '/_admin/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
     '/_public/_auth': {
       id: '/_public/_auth'
@@ -266,6 +300,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AdminRouteRouteChildren {
+  AdminDashboardRoute: typeof AdminDashboardRoute
+}
+
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminDashboardRoute: AdminDashboardRoute,
+}
+
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
+  AdminRouteRouteChildren,
+)
 
 interface ProtectedLibraryRouteRouteChildren {
   ProtectedLibraryBookIdRoute: typeof ProtectedLibraryBookIdRoute
@@ -331,6 +377,7 @@ const PublicRouteRouteWithChildren = PublicRouteRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
+  AdminRouteRoute: AdminRouteRouteWithChildren,
   ProtectedRouteRoute: ProtectedRouteRouteWithChildren,
   PublicRouteRoute: PublicRouteRouteWithChildren,
 }

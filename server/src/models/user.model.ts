@@ -2,11 +2,13 @@ import mongoose, { Schema } from "mongoose";
 
 export interface IUser {
   _id: mongoose.Types.ObjectId;
+  role: "user" | "admin";
+  isBanned: boolean;
   username: string;
   email: string;
   password: string;
   refreshTokens: string[];
-  nativeLanguage?: string; // ISO 639-1 code (e.g., "sr", "en")
+  nativeLanguage: string; // ISO 639-1 code (e.g., "sr", "en")
   readingBooks?: IReadingBook[];
   createdAt: Date;
   updatedAt: Date;
@@ -31,6 +33,15 @@ const readingBookSchema = new Schema<IReadingBook>(
 
 const userSchema = new Schema<IUser>(
   {
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
+    isBanned: {
+      type: Boolean,
+      default: false,
+    },
     username: {
       type: String,
       required: true,

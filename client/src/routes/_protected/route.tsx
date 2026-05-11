@@ -20,6 +20,9 @@ export const Route = createFileRoute("/_protected")({
     if (!auth.isAuthenticated) {
       throw redirect({ to: "/login", replace: true });
     }
+    if (auth.user?.role === "admin") {
+      throw redirect({ to: "/dashboard", replace: true });
+    }
     return {
       user: auth.user,
     };

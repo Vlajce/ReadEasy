@@ -5,6 +5,7 @@ export type TokenType = "access" | "refresh";
 
 export interface TokenPayload {
   userId: string;
+  role: "user" | "admin";
 }
 
 const secrets: Record<TokenType, jwt.Secret> = {
@@ -17,8 +18,12 @@ const expirations: Record<TokenType, jwt.SignOptions["expiresIn"]> = {
   refresh: config.jwt.refresh.expiresIn as jwt.SignOptions["expiresIn"],
 };
 
-export const signToken = (userId: string, type: TokenType): string => {
-  const payload: TokenPayload = { userId };
+export const signToken = (
+  userId: string,
+  role: "user" | "admin",
+  type: TokenType,
+): string => {
+  const payload: TokenPayload = { userId, role };
   return jwt.sign(payload, secrets[type], { expiresIn: expirations[type] });
 };
 
@@ -26,9 +31,10 @@ export const verifyToken = (token: string, type: TokenType): TokenPayload => {
   return jwt.verify(token, secrets[type]) as TokenPayload;
 };
 
-export const signAccessToken = (userId: string) => signToken(userId, "access");
-export const signRefreshToken = (userId: string) =>
-  signToken(userId, "refresh");
+export const signAccessToken = (userId: string, role: "user" | "admin") =>
+  signToken(userId, role, "access");
+export const signRefreshToken = (userId: string, role: "user" | "admin") =>
+  signToken(userId, role, "refresh");
 export const verifyAccessToken = (token: string) =>
   verifyToken(token, "access");
 export const verifyRefreshToken = (token: string) =>

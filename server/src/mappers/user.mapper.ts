@@ -6,6 +6,8 @@ type UserMapperInput = Pick<
   | "_id"
   | "username"
   | "email"
+  | "role"
+  | "isBanned"
   | "nativeLanguage"
   | "readingBooks"
   | "createdAt"
@@ -17,6 +19,8 @@ export const toUserDTO = (user: UserMapperInput): UserDTO => {
     id: user._id.toString(),
     username: user.username,
     email: user.email,
+    role: user.role,
+    isBanned: user.isBanned,
     nativeLanguage: user.nativeLanguage,
     readingBooks: user.readingBooks?.map((rb) => ({
       id: rb.id.toString(),

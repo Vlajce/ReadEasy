@@ -13,6 +13,8 @@ import { ErrorComponent } from "@/components/error.tsx";
 import { NotFoundComponent } from "@/components/not-found.tsx";
 import { ApiError } from "@/lib/api-error.ts";
 import { getFormattedDate } from "@/lib/utils.ts";
+import { ErrorCodes } from "@/lib/error-codes.ts";
+import { apiClient } from "./lib/api-client.ts";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -66,14 +68,33 @@ declare module "@tanstack/react-router" {
   }
 }
 
+let isBanRedirecting = false;
+
 const handleGlobalError = (error: Error) => {
   if (error instanceof ApiError && error.statusCode === 401) {
-    queryClient.clear();
+    auth.setUser(null);
     toast.error("Your session has expired. Please login again.", {
       description: getFormattedDate() + " 📆",
       id: "session-expired",
     });
     router.invalidate();
+  } else if (
+    error instanceof ApiError &&
+    error.statusCode === 403 &&
+    error.errorCode === ErrorCodes.AUTH_FORBIDDEN
+  ) {
+    if (window.location.pathname === "/login") return;
+
+    if (isBanRedirecting) return;
+    isBanRedirecting = true;
+    auth.setUser(null);
+    apiClient
+      .post("/auth/logout")
+      .catch(() => {})
+      .finally(() => {
+        window.location.replace("/login?banned=true");
+        isBanRedirecting = false;
+      });
   } else if (error instanceof ApiError && error.statusCode >= 500) {
     toast.error("Oops! Something went wrong. Please try again later.", {
       description: getFormattedDate() + " 📆",

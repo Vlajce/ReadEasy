@@ -16,6 +16,7 @@ import { toUserDTO } from "../mappers/user.mapper.js";
 import type { UserDTO } from "../types/user.js";
 import { isMongoDuplicateError } from "../utils/db.errors.js";
 import { BadRequestError } from "../errors/bad-request.error.js";
+import { ForbiddenError } from "../errors/forbidden.error.js";
 
 const COOKIE_OPTIONS: CookieOptions = {
   httpOnly: true,
@@ -26,6 +27,16 @@ const COOKIE_OPTIONS: CookieOptions = {
 
 const register = asyncHandler(async (req: Request, res: Response) => {
   const { username, email, password } = registerSchema.parse(req.body);
+
+  const existingEmail = await User.findOne({ email });
+  if (existingEmail) {
+    throw new ConflictError("User with this email already exists");
+  }
+
+  const existingUsername = await User.findOne({ username });
+  if (existingUsername) {
+    throw new ConflictError("User with this username already exists");
+  }
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -44,17 +55,19 @@ const register = asyncHandler(async (req: Request, res: Response) => {
     );
   } catch (error) {
     if (isMongoDuplicateError(error)) {
-      const field = Object.keys(error.keyPattern)[0] || "unknown";
+      const fields = Object.keys(error.keyPattern);
 
-      const messages: Record<string, string> = {
-        email: "User with this email already exists",
-        username: "User with this username already exists",
-      };
+      if (fields.includes("email")) {
+        throw new ConflictError("User with this email already exists");
+      }
 
-      throw new ConflictError(
-        messages[field] || "User with this information already exists",
-      );
+      if (fields.includes("username")) {
+        throw new ConflictError("User with this username already exists");
+      }
+
+      throw new ConflictError("User already exists");
     }
+
     throw error;
   }
 });
@@ -75,8 +88,17 @@ const login = asyncHandler(async (req: Request, res: Response) => {
     throw new BadRequestError("Invalid email or password");
   }
 
-  const accessToken = signAccessToken(foundUser._id.toString());
-  const newRefreshToken = signRefreshToken(foundUser._id.toString());
+  if (foundUser.isBanned) {
+    throw new ForbiddenError(
+      "Your account has been suspended. Please contact support.",
+    );
+  }
+
+  const accessToken = signAccessToken(foundUser._id.toString(), foundUser.role);
+  const newRefreshToken = signRefreshToken(
+    foundUser._id.toString(),
+    foundUser.role,
+  );
 
   let newRefreshTokenArray = !cookies.refreshToken
     ? foundUser.refreshTokens
@@ -157,8 +179,8 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
     }
 
     // valid -> issue new tokens
-    const accessToken = signAccessToken(decoded.userId);
-    const newRefreshToken = signRefreshToken(decoded.userId);
+    const accessToken = signAccessToken(decoded.userId, decoded.role);
+    const newRefreshToken = signRefreshToken(decoded.userId, decoded.role);
 
     foundUser.refreshTokens = [...newRefreshTokenArray, newRefreshToken];
     await foundUser.save();
