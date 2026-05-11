@@ -39,7 +39,7 @@ function DashboardPage() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <AdminPageHeader
           title="Admin Dashboard "
-          description="An overview of users, reading activity, and vocabulary trends."
+          description="Monitor users, reading activity and vocabulary trends."
         />
 
         <AdminStatGrid stats={stats} isLoading={statsLoading} />

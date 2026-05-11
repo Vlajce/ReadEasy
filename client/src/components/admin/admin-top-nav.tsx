@@ -36,7 +36,7 @@ export function AdminTopNav() {
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="flex items-center gap-3 rounded-xl border border-transparent px-2 py-1 text-left transition hover:bg-slate-800"
+              className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-600/50 bg-slate-700/20 px-2 py-1 text-left transition hover:border-slate-500 hover:bg-slate-700/70 hover:shadow-sm active:scale-[0.99] outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-800"
             >
               <UserInfo
                 username={user?.username ?? "Admin"}
@@ -45,7 +45,11 @@ export function AdminTopNav() {
               <MoreVertical className="size-4 text-slate-400" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-56 rounded-lg">
+          <DropdownMenuContent
+            align="end"
+            className="min-w-56 rounded-lg"
+            onCloseAutoFocus={(event) => event.preventDefault()}
+          >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <UserInfo
