@@ -1,6 +1,5 @@
 import { BookList } from "@/components/ui/book-list";
 import { BookListSkeleton } from "@/components/ui/book-list-skeleton";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
 import {
@@ -18,8 +17,10 @@ import { bookSearchSchema, type BookSearchParams } from "@/schemas/book";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { getEmoji, getLanguage, getName } from "language-flag-colors";
-import { Globe, Search } from "lucide-react";
-import { Suspense } from "react";
+import { Globe, Search, X } from "lucide-react";
+import { Suspense, useCallback, useState } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
+// import { TopBooksSection } from "@/components/ui/top-books-section";
 
 export const Route = createFileRoute("/_protected/explore")({
   component: RouteComponent,
@@ -36,17 +37,27 @@ function RouteComponent() {
   const navigate = useNavigate({ from: Route.fullPath });
   const { search, limit, ...rest } = Route.useSearch();
 
-  function handleSearch(e: React.SubmitEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const searchValue = formData.get("search")?.toString() || "";
-    navigate({
-      search: (prev) => ({
-        ...prev,
-        search: searchValue,
-        page: 1,
-      }),
-    });
+  const [inputValue, setInputValue] = useState(search || "");
+
+  const triggerSearch = useCallback(
+    (value: string) => {
+      navigate({
+        search: (prev) => ({ ...prev, search: value || undefined, page: 1 }),
+      });
+    },
+    [navigate],
+  );
+
+  const debouncedSearch = useDebounce(triggerSearch, 300);
+
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setInputValue(e.target.value);
+    debouncedSearch(e.target.value);
+  }
+
+  function handleClear() {
+    setInputValue("");
+    triggerSearch("");
   }
 
   function handleApplyLanguageFilter(language: string) {
@@ -62,17 +73,24 @@ function RouteComponent() {
   return (
     <div className="container mx-auto">
       <div className="mb-10 flex flex-wrap gap-4 justify-between items-center">
-        <form className="flex flex-1 gap-2" onSubmit={handleSearch}>
+        <div className="flex flex-1 gap-2 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
           <Input
-            className="min-w-45 max-w-xs bg-accent/60 inset-shadow-md/10 shadow-none"
+            className="min-w-45 max-w-xs bg-accent/60 inset-shadow-md/10 shadow-none pl-9 pr-8"
             placeholder="Search"
-            name="search"
             defaultValue={search || ""}
+            onChange={handleInputChange}
           />
-          <Button type="submit" className="shadow-sm">
-            <Search />
-          </Button>
-        </form>
+          {inputValue && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-4" />
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <Globe className="size-7" />
           <SelectLanguage
@@ -80,6 +98,8 @@ function RouteComponent() {
           />
         </div>
       </div>
+      {/* <TopBooksSection /> */}
+      {/* <div className="my-10 border-t border-border/70" /> */}
       <Suspense fallback={<BookListSkeleton length={limit} />}>
         <BooksContainer search={search} limit={limit} {...rest} />
       </Suspense>

@@ -33,6 +33,11 @@ const getPublicBooks = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
+const getTopBooks = asyncHandler(async (req: Request, res: Response) => {
+  const topBooks = await bookRepository.findTopBooks(10);
+  return sendSuccess(res, topBooks, "Top books fetched successfully", 200);
+});
+
 const getPublicBookById = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const book = await bookRepository.findPublicBookById(id as string);
@@ -259,6 +264,7 @@ const getBooksLanguages = asyncHandler(async (req: Request, res: Response) => {
 
 export const bookController = {
   getPublicBooks,
+  getTopBooks,
   getPublicBookById,
   getPublicBookContent,
   uploadMyBook,
