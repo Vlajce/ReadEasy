@@ -8,6 +8,7 @@ import {
   BookOpen,
   Pencil,
   ArrowUpRight,
+  ArrowUp,
   X,
 } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -86,6 +87,9 @@ function RouteComponent() {
     "all",
   );
   const [colorFilter, setColorFilter] = useState<"all" | HighlightColor>("all");
+  const [pendingSection, setPendingSection] = useState<VocabularyStatus | null>(
+    null,
+  );
 
   const statsQuery = useQuery(getVocabularyStatsQueryOptions());
   const { mutate: removeWord, isPending: isRemoving } = useDeleteVocabulary();
@@ -153,11 +157,7 @@ function RouteComponent() {
             border: "none",
             cursor: "pointer",
           }}
-          onClick={() =>
-            document
-              .getElementById("section-new")
-              ?.scrollIntoView({ behavior: "smooth" })
-          }
+          onClick={() => setPendingSection("new")}
         >
           New: {statsQuery.data?.overview?.byStatus?.new ?? 0}
         </Badge>
@@ -168,11 +168,7 @@ function RouteComponent() {
             border: "none",
             cursor: "pointer",
           }}
-          onClick={() =>
-            document
-              .getElementById("section-learning")
-              ?.scrollIntoView({ behavior: "smooth" })
-          }
+          onClick={() => setPendingSection("learning")}
         >
           Learning: {statsQuery.data?.overview?.byStatus?.learning ?? 0}
         </Badge>
@@ -183,11 +179,7 @@ function RouteComponent() {
             border: "none",
             cursor: "pointer",
           }}
-          onClick={() =>
-            document
-              .getElementById("section-mastered")
-              ?.scrollIntoView({ behavior: "smooth" })
-          }
+          onClick={() => setPendingSection("mastered")}
         >
           Mastered: {statsQuery.data?.overview?.byStatus?.mastered ?? 0}
         </Badge>
@@ -232,10 +224,27 @@ function RouteComponent() {
         language={searchParams.language}
         statusFilter={statusFilter}
         colorFilter={colorFilter}
+        statusCounts={{
+          new: statsQuery.data?.overview?.byStatus?.new ?? 0,
+          learning: statsQuery.data?.overview?.byStatus?.learning ?? 0,
+          mastered: statsQuery.data?.overview?.byStatus?.mastered ?? 0,
+        }}
+        pendingSection={pendingSection}
+        onPendingSectionConsumed={() => setPendingSection(null)}
         onDelete={(id, word) => removeWord({ id, word })}
         onMove={(id, status) => updateStatus({ id, status })}
         isBusy={isRemoving || isUpdating}
       />
+
+      <Button
+        type="button"
+        size="icon"
+        className="fixed right-6 bottom-6 z-50 rounded-full shadow-xl"
+        aria-label="Back to top"
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      >
+        <ArrowUp />
+      </Button>
     </div>
   );
 }
@@ -245,6 +254,9 @@ function VocabularyContainer({
   language,
   statusFilter,
   colorFilter,
+  statusCounts,
+  pendingSection,
+  onPendingSectionConsumed,
   onDelete,
   onMove,
   isBusy,
@@ -253,6 +265,9 @@ function VocabularyContainer({
   language: string | undefined;
   statusFilter: "all" | VocabularyStatus;
   colorFilter: "all" | HighlightColor;
+  statusCounts: Record<VocabularyStatus, number>;
+  pendingSection: VocabularyStatus | null;
+  onPendingSectionConsumed: () => void;
   onDelete: (id: string, word: string) => void;
   onMove: (id: string, status: VocabularyStatus) => void;
   isBusy: boolean;
@@ -296,7 +311,7 @@ function VocabularyContainer({
 
   useEffect(() => {
     const node = loadMoreRef.current;
-    if (!node) return;
+    if (!node || pendingSection) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (
@@ -311,7 +326,29 @@ function VocabularyContainer({
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [vocabularyQuery]);
+  }, [vocabularyQuery, pendingSection]);
+
+  useEffect(() => {
+    if (!pendingSection) return;
+
+    const targetId = `section-${pendingSection}`;
+    const targetElement = document.getElementById(targetId);
+
+    if (vocabularyQuery.hasNextPage && !vocabularyQuery.isFetchingNextPage) {
+      vocabularyQuery.fetchNextPage();
+      return;
+    }
+
+    if (targetElement && !vocabularyQuery.hasNextPage) {
+      targetElement.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      const timeoutId = window.setTimeout(() => {
+        onPendingSectionConsumed();
+      }, 700);
+
+      return () => window.clearTimeout(timeoutId);
+    }
+  }, [pendingSection, onPendingSectionConsumed, vocabularyQuery]);
 
   const allPages = vocabularyQuery.data?.pages ?? [];
   const entries = allPages.flatMap((page) => page.data);
@@ -447,7 +484,7 @@ function VocabularyContainer({
                     border: "none",
                   }}
                 >
-                  {grouped[status].length}
+                  {statusCounts[status]}
                 </Badge>
               </div>
 
