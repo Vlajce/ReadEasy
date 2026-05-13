@@ -5,177 +5,166 @@ interface ProgressionChartProps {
   days: 7 | 30;
 }
 
-export function ProgressionChart({ progression, days }: ProgressionChartProps) {
+interface BarRowProps {
+  label: string;
+  sublabel?: string;
+  value: number;
+  max: number;
+  color: string;
+  isPercentage?: boolean;
+}
+
+function BarRow({
+  label,
+  sublabel,
+  value,
+  max,
+  color,
+  isPercentage = false,
+}: BarRowProps) {
+  const pct = isPercentage ? value : (value / max) * 100;
+  const displayValue = isPercentage ? `${value}%` : value;
+
+  return (
+    <div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          marginBottom: "7px",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <div
+            style={{
+              width: "7px",
+              height: "7px",
+              borderRadius: "50%",
+              backgroundColor: color,
+              flexShrink: 0,
+            }}
+          />
+          <span
+            style={{
+              fontSize: "13px",
+              color: "var(--color-text-secondary, #888)",
+            }}
+          >
+            {label}
+          </span>
+          {sublabel && (
+            <span
+              style={{
+                fontSize: "11px",
+                color: "var(--color-text-secondary, #aaa)",
+                opacity: 0.7,
+              }}
+            >
+              {sublabel}
+            </span>
+          )}
+        </div>
+        <span
+          style={{
+            fontSize: "13px",
+            fontWeight: 600,
+            color: "var(--color-text-primary, #111)",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {displayValue}
+        </span>
+      </div>
+
+      <div
+        style={{
+          height: "5px",
+          backgroundColor: "var(--color-background-primary, #efefef)",
+          borderRadius: "99px",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            height: "100%",
+            width: `${Math.min(pct, 100)}%`,
+            backgroundColor: color,
+            borderRadius: "99px",
+            transition: "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+export function ProgressionChart({ progression }: ProgressionChartProps) {
   const { newToLearning, learningToMastered, accuracyRate } = progression;
   const maxProgression = Math.max(newToLearning, learningToMastered, 1);
 
   return (
     <div
       style={{
-        backgroundColor: "var(--color-background-primary)",
-        border: "0.5px solid var(--color-border-tertiary)",
-        borderRadius: "12px",
-        padding: "20px",
+        backgroundColor: "var(--color-background-secondary, #f9f9f9)",
+        border: "0.5px solid var(--color-border-tertiary, #ebebeb)",
+        borderRadius: "10px",
+        padding: "16px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "0",
       }}
     >
       <div
         style={{
           fontSize: "15px",
-          fontWeight: 500,
+          fontWeight: 600,
           color: "var(--color-text-primary)",
-          marginBottom: "16px",
+          marginBottom: "18px",
         }}
       >
-        Your progress{" "}
-        <span
-          style={{
-            fontSize: "12px",
-            color: "var(--color-text-secondary)",
-            fontWeight: 400,
-          }}
-        >
-          last {days}d
-        </span>
+        Learning momentum
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        {/* New → Learning */}
-        <div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: "6px",
-            }}
-          >
-            <span
-              style={{ fontSize: "13px", color: "var(--color-text-secondary)" }}
-            >
-              new → learning
-            </span>
-            <span
-              style={{
-                fontSize: "13px",
-                fontWeight: 500,
-                color: "var(--color-text-primary)",
-              }}
-            >
-              {newToLearning}
-            </span>
-          </div>
-          <div
-            style={{
-              height: "6px",
-              backgroundColor: "var(--color-background-secondary)",
-              borderRadius: "3px",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                height: "100%",
-                width: `${(newToLearning / maxProgression) * 100}%`,
-                backgroundColor: "#EF9F27",
-                borderRadius: "3px",
-                transition: "width 0.3s ease",
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Learning → Mastered */}
-        <div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: "6px",
-            }}
-          >
-            <span
-              style={{ fontSize: "13px", color: "var(--color-text-secondary)" }}
-            >
-              learning → mastered
-            </span>
-            <span
-              style={{
-                fontSize: "13px",
-                fontWeight: 500,
-                color: "var(--color-text-primary)",
-              }}
-            >
-              {learningToMastered}
-            </span>
-          </div>
-          <div
-            style={{
-              height: "6px",
-              backgroundColor: "var(--color-background-secondary)",
-              borderRadius: "3px",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                height: "100%",
-                width: `${(learningToMastered / maxProgression) * 100}%`,
-                backgroundColor: "#1D9E75",
-                borderRadius: "3px",
-                transition: "width 0.3s ease",
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div
-          style={{
-            borderTop: "0.5px solid var(--color-border-tertiary)",
-            paddingTop: "12px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: "6px",
-            }}
-          >
-            <span
-              style={{ fontSize: "13px", color: "var(--color-text-secondary)" }}
-            >
-              Accuracy rate
-            </span>
-            <span
-              style={{
-                fontSize: "13px",
-                fontWeight: 500,
-                color: "var(--color-text-primary)",
-              }}
-            >
-              {accuracyRate}%
-            </span>
-          </div>
-          <div
-            style={{
-              height: "6px",
-              backgroundColor: "var(--color-background-secondary)",
-              borderRadius: "3px",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                height: "100%",
-                width: `${accuracyRate}%`,
-                backgroundColor: "#378ADD",
-                borderRadius: "3px",
-                transition: "width 0.3s ease",
-              }}
-            />
-          </div>
-        </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+        <BarRow
+          label="New → Learning"
+          value={newToLearning}
+          max={maxProgression}
+          color="#EF9F27"
+        />
+        <BarRow
+          label="Learning → Mastered"
+          value={learningToMastered}
+          max={maxProgression}
+          color="#1D9E75"
+        />
       </div>
+
+      <div
+        style={{
+          borderTop: "0.5px solid var(--color-border-tertiary, #e8e8e8)",
+          margin: "16px 0",
+        }}
+      />
+
+      <BarRow
+        label="Accuracy rate"
+        value={accuracyRate}
+        max={100}
+        color="#378ADD"
+        isPercentage
+      />
+      <p
+        style={{
+          margin: "8px 0 0 0",
+          fontSize: "11px",
+          color: "var(--color-text-secondary, #aaa)",
+          lineHeight: 1.5,
+        }}
+      >
+        Overall correct answer rate across all your quiz history.
+      </p>
     </div>
   );
 }
