@@ -14,6 +14,8 @@ const {
   deleteVocabularyEntry,
   getBookWords,
   getStats,
+  getBookQuiz,
+  submitQuizAnswer,
 } = vocabularyController;
 
 const strictLimiter = rateLimiter(
@@ -36,6 +38,12 @@ router.get("/stats", getStats);
 
 // Book-specific words
 router.get("/books/:bookId/words", validateObjectId("bookId"), getBookWords);
+router.get("/books/:bookId/quiz", validateObjectId("bookId"), getBookQuiz);
+router.post(
+  "/books/:bookId/quiz/submit",
+  validateObjectId("bookId"),
+  submitQuizAnswer,
+);
 
 // Individual word operations (catch-all for :id)
 router.get("/:id", validateObjectId("id"), getVocabularyEntryById);
@@ -51,4 +59,5 @@ router.delete(
   validateObjectId("id"),
   deleteVocabularyEntry,
 );
+
 export const vocabularyRoutes = router;

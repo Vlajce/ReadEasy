@@ -1,9 +1,17 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import { getEmoji, getLanguage, getName } from "language-flag-colors";
-import { Search, Trash2, BookOpen, Pencil, ArrowUpRight } from "lucide-react";
-
+import {
+  Search,
+  Trash2,
+  BookOpen,
+  Pencil,
+  ArrowUpRight,
+  ArrowUp,
+  X,
+} from "lucide-react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -79,20 +87,36 @@ function RouteComponent() {
     "all",
   );
   const [colorFilter, setColorFilter] = useState<"all" | HighlightColor>("all");
+  const [pendingSection, setPendingSection] = useState<VocabularyStatus | null>(
+    null,
+  );
 
   const statsQuery = useQuery(getVocabularyStatsQueryOptions());
   const { mutate: removeWord, isPending: isRemoving } = useDeleteVocabulary();
   const { mutate: updateStatus, isPending: isUpdating } =
     useUpdateVocabularyStatus();
+  const [inputValue, setInputValue] = useState(searchParams.search || "");
 
-  const handleSearch = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const value = formData.get("search")?.toString().trim();
-    navigate({
-      search: (prev) => ({ ...prev, search: value || undefined, page: 1 }),
-    });
-  };
+  const triggerSearch = useCallback(
+    (value: string) => {
+      navigate({
+        search: (prev) => ({ ...prev, search: value || undefined, page: 1 }),
+      });
+    },
+    [navigate],
+  );
+
+  const debouncedSearch = useDebounce(triggerSearch, 300);
+
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setInputValue(e.target.value);
+    debouncedSearch(e.target.value);
+  }
+
+  function handleClear() {
+    setInputValue("");
+    triggerSearch("");
+  }
 
   const handleLanguageFilter = (value: string) => {
     navigate({
@@ -126,30 +150,61 @@ function RouteComponent() {
             (statsQuery.data?.overview?.byStatus?.learning ?? 0) +
             (statsQuery.data?.overview?.byStatus?.mastered ?? 0)}
         </Badge>
-        <Badge variant="outline">
+        <Badge
+          style={{
+            backgroundColor: "#378ADD",
+            color: "white",
+            border: "none",
+            cursor: "pointer",
+          }}
+          onClick={() => setPendingSection("new")}
+        >
           New: {statsQuery.data?.overview?.byStatus?.new ?? 0}
         </Badge>
-        <Badge variant="outline">
+        <Badge
+          style={{
+            backgroundColor: "#EF9F27",
+            color: "white",
+            border: "none",
+            cursor: "pointer",
+          }}
+          onClick={() => setPendingSection("learning")}
+        >
           Learning: {statsQuery.data?.overview?.byStatus?.learning ?? 0}
         </Badge>
-        <Badge variant="outline">
+        <Badge
+          style={{
+            backgroundColor: "#1D9E75",
+            color: "white",
+            border: "none",
+            cursor: "pointer",
+          }}
+          onClick={() => setPendingSection("mastered")}
+        >
           Mastered: {statsQuery.data?.overview?.byStatus?.mastered ?? 0}
         </Badge>
       </div>
 
       {/* Search & Filters */}
       <div className="mb-8 space-y-4">
-        <form onSubmit={handleSearch} className="flex flex-1 gap-2">
+        <div className="flex flex-1 gap-2 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
           <Input
-            name="search"
-            defaultValue={searchParams.search || ""}
+            className="max-w-xl bg-accent/60 inset-shadow-md/10 pl-9 pr-8"
             placeholder="Search by word..."
-            className="max-w-xl bg-accent/60 inset-shadow-md/10"
+            value={inputValue}
+            onChange={handleInputChange}
           />
-          <Button type="submit">
-            <Search />
-          </Button>
-        </form>
+          {inputValue && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-4" />
+            </button>
+          )}
+        </div>
 
         <VocabularyFilters
           statusFilter={statusFilter}
@@ -169,10 +224,27 @@ function RouteComponent() {
         language={searchParams.language}
         statusFilter={statusFilter}
         colorFilter={colorFilter}
+        statusCounts={{
+          new: statsQuery.data?.overview?.byStatus?.new ?? 0,
+          learning: statsQuery.data?.overview?.byStatus?.learning ?? 0,
+          mastered: statsQuery.data?.overview?.byStatus?.mastered ?? 0,
+        }}
+        pendingSection={pendingSection}
+        onPendingSectionConsumed={() => setPendingSection(null)}
         onDelete={(id, word) => removeWord({ id, word })}
         onMove={(id, status) => updateStatus({ id, status })}
         isBusy={isRemoving || isUpdating}
       />
+
+      <Button
+        type="button"
+        size="icon"
+        className="fixed right-6 bottom-6 z-50 rounded-full shadow-xl"
+        aria-label="Back to top"
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      >
+        <ArrowUp />
+      </Button>
     </div>
   );
 }
@@ -182,6 +254,9 @@ function VocabularyContainer({
   language,
   statusFilter,
   colorFilter,
+  statusCounts,
+  pendingSection,
+  onPendingSectionConsumed,
   onDelete,
   onMove,
   isBusy,
@@ -190,6 +265,9 @@ function VocabularyContainer({
   language: string | undefined;
   statusFilter: "all" | VocabularyStatus;
   colorFilter: "all" | HighlightColor;
+  statusCounts: Record<VocabularyStatus, number>;
+  pendingSection: VocabularyStatus | null;
+  onPendingSectionConsumed: () => void;
   onDelete: (id: string, word: string) => void;
   onMove: (id: string, status: VocabularyStatus) => void;
   isBusy: boolean;
@@ -233,7 +311,7 @@ function VocabularyContainer({
 
   useEffect(() => {
     const node = loadMoreRef.current;
-    if (!node) return;
+    if (!node || pendingSection) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (
@@ -248,7 +326,29 @@ function VocabularyContainer({
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [vocabularyQuery]);
+  }, [vocabularyQuery, pendingSection]);
+
+  useEffect(() => {
+    if (!pendingSection) return;
+
+    const targetId = `section-${pendingSection}`;
+    const targetElement = document.getElementById(targetId);
+
+    if (vocabularyQuery.hasNextPage && !vocabularyQuery.isFetchingNextPage) {
+      vocabularyQuery.fetchNextPage();
+      return;
+    }
+
+    if (targetElement && !vocabularyQuery.hasNextPage) {
+      targetElement.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      const timeoutId = window.setTimeout(() => {
+        onPendingSectionConsumed();
+      }, 700);
+
+      return () => window.clearTimeout(timeoutId);
+    }
+  }, [pendingSection, onPendingSectionConsumed, vocabularyQuery]);
 
   const allPages = vocabularyQuery.data?.pages ?? [];
   const entries = allPages.flatMap((page) => page.data);
@@ -347,16 +447,45 @@ function VocabularyContainer({
       ) : (
         <div className="space-y-8">
           {sectionsToRender.map((status) => (
-            <div key={status} className="space-y-4">
+            <div key={status} id={`section-${status}`} className="space-y-4">
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-semibold">
+                <h2
+                  className="text-lg font-semibold border-b-2 pb-1"
+                  style={{
+                    color:
+                      status === "new"
+                        ? "#378ADD"
+                        : status === "learning"
+                          ? "#EF9F27"
+                          : "#1D9E75",
+                    borderBottomColor:
+                      status === "new"
+                        ? "#378ADD"
+                        : status === "learning"
+                          ? "#EF9F27"
+                          : "#1D9E75",
+                  }}
+                >
                   {status === "new"
                     ? "New"
                     : status === "learning"
                       ? "Learning"
                       : "Mastered"}
                 </h2>
-                <Badge variant="secondary">{grouped[status].length}</Badge>
+                <Badge
+                  style={{
+                    backgroundColor:
+                      status === "new"
+                        ? "#378ADD"
+                        : status === "learning"
+                          ? "#EF9F27"
+                          : "#1D9E75",
+                    color: "white",
+                    border: "none",
+                  }}
+                >
+                  {statusCounts[status]}
+                </Badge>
               </div>
 
               {!grouped[status].length ? (

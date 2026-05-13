@@ -82,34 +82,18 @@ const findEntries = async (
   if (query.status) filter.status = query.status;
   if (query.language) filter.language = query.language;
 
-  const hasSearch = !!query.search;
-  let useTextSearch = false;
-
-  if (hasSearch) {
-    const searchTerm = query.search;
-
-    if (searchTerm!.length <= 4) {
-      const escaped = searchTerm!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      filter.word = { $regex: `^${escaped}` };
-    } else {
-      filter.$text = { $search: searchTerm };
-      useTextSearch = true;
-    }
+  if (query.search) {
+    const escaped = query.search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    filter.word = { $regex: escaped, $options: "i" };
   }
 
   const totalItems = await VocabularyEntry.countDocuments(filter).exec();
   const totalPages = Math.ceil(totalItems / limitNum);
   const effectivePage = totalPages > 0 ? Math.min(pageNum, totalPages) : 1;
 
-  let dataQuery = VocabularyEntry.find(filter).select(EXCLUDE_FIELDS);
-
-  if (useTextSearch) {
-    dataQuery = dataQuery.select({ score: { $meta: "textScore" } }).sort({
-      score: { $meta: "textScore" },
-    });
-  } else {
-    dataQuery = dataQuery.sort({ createdAt: -1 });
-  }
+  const dataQuery = VocabularyEntry.find(filter)
+    .select(EXCLUDE_FIELDS)
+    .sort({ createdAt: -1 });
 
   const data = await dataQuery
     .skip((effectivePage - 1) * limitNum)
@@ -434,6 +418,84 @@ const appendStatusHistory = async (
     .exec();
 };
 
+const getBookQuizWords = async (
+  bookId: string,
+  userId: string,
+  limit: number = 10,
+): Promise<
+  {
+    word: string;
+    baseForm: string;
+    translation: string;
+    language: string;
+    partOfSpeech: string;
+    exampleSentence: string;
+    userCount: number;
+    entryId: string | null;
+    alreadyInVocabulary: boolean;
+  }[]
+> => {
+  const bookObjectId = new Types.ObjectId(bookId);
+  const userObjectId = new Types.ObjectId(userId);
+
+  // The most popular words from this book across all users
+  const popularWords = await VocabularyEntry.aggregate([
+    { $match: { bookId: bookObjectId } },
+    {
+      $group: {
+        _id: { baseForm: "$baseForm", language: "$language" },
+        word: { $first: "$word" },
+        translation: { $first: "$translation" },
+        partOfSpeech: { $first: "$partOfSpeech" },
+        exampleSentence: { $first: "$exampleSentence" },
+        userCount: { $addToSet: "$userId" },
+      },
+    },
+    {
+      $project: {
+        word: 1,
+        baseForm: "$_id.baseForm",
+        language: "$_id.language",
+        translation: 1,
+        partOfSpeech: 1,
+        exampleSentence: 1,
+        userCount: { $size: "$userCount" },
+      },
+    },
+    //{ $match: { userCount: { $gte: 2 } } },
+    { $sort: { userCount: -1 } },
+    { $limit: limit },
+  ]).exec();
+
+  if (!popularWords.length) return [];
+
+  // Check which of these words the user already has in their vocabulary
+  const baseForms = popularWords.map((w) => w.baseForm);
+  const userEntries = await VocabularyEntry.find({
+    userId: userObjectId,
+    baseForm: { $in: baseForms },
+  })
+    .select("baseForm entryId _id")
+    .lean()
+    .exec();
+
+  const userEntryMap = new Map(
+    userEntries.map((e) => [e.baseForm, e._id.toString()]),
+  );
+
+  return popularWords.map((w) => ({
+    word: w.word,
+    baseForm: w.baseForm,
+    translation: w.translation,
+    language: w.language,
+    partOfSpeech: w.partOfSpeech,
+    exampleSentence: w.exampleSentence,
+    userCount: w.userCount,
+    entryId: userEntryMap.get(w.baseForm) ?? null,
+    alreadyInVocabulary: userEntryMap.has(w.baseForm),
+  }));
+};
+
 export const vocabularyRepository = {
   createEntry,
   findEntry,
@@ -449,4 +511,5 @@ export const vocabularyRepository = {
   getWordsForExercises,
   updateReviewResult,
   appendStatusHistory,
+  getBookQuizWords,
 };

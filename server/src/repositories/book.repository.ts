@@ -1,7 +1,9 @@
 import { Book, type IBook } from "../models/book.model.js";
+import { User } from "../models/user.model.js";
 import type { BookInput, FindBooksQuery } from "../validation/book.schema.js";
 import { storageService } from "../services/storage.service.js";
 import { NotFoundError } from "../errors/not-found.error.js";
+import type { TopBookDTO } from "../types/book.js";
 
 const EXCLUDE_FIELDS = {
   filepath: 0,
@@ -37,27 +39,18 @@ const findBooks = async (
   }
 
   if (query.search) {
-    mongoFilter.$text = { $search: query.search };
+    const escapedSearch = query.search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    mongoFilter.$or = [
+      { title: { $regex: escapedSearch, $options: "i" } },
+      { author: { $regex: escapedSearch, $options: "i" } },
+    ];
   }
 
-  const useTextSearch = Boolean(mongoFilter.$text);
-
-  let dataQuery = Book.find(mongoFilter).select(EXCLUDE_FIELDS);
-
-  if (useTextSearch) {
-    dataQuery = dataQuery
-      .select({ ...EXCLUDE_FIELDS, score: { $meta: "textScore" } })
-      .sort({
-        score: { $meta: "textScore" },
-        createdAt: -1,
-      });
-  } else {
-    const sortField = query.sortBy || "createdAt";
-    const sortOrder = query.sortOrder === "asc" ? 1 : -1;
-    dataQuery = dataQuery.sort({
-      [sortField]: sortOrder,
-    });
-  }
+  const sortField = query.sortBy || "createdAt";
+  const sortOrder = query.sortOrder === "asc" ? 1 : -1;
+  const dataQuery = Book.find(mongoFilter)
+    .select(EXCLUDE_FIELDS)
+    .sort({ [sortField]: sortOrder });
 
   const totalItems = await Book.countDocuments(mongoFilter).exec();
   const totalPages = Math.ceil(totalItems / limit);
@@ -78,6 +71,33 @@ const findBooks = async (
       totalPages,
     },
   };
+};
+
+const findTopBooks = async (limit = 5): Promise<TopBookDTO[]> => {
+  const results = await User.aggregate([
+    { $unwind: "$readingBooks" },
+    {
+      $group: {
+        _id: "$readingBooks.id",
+        title: { $first: "$readingBooks.title" },
+        author: { $first: "$readingBooks.author" },
+        language: { $first: "$readingBooks.language" },
+        imageUrl: { $first: "$readingBooks.imageUrl" },
+        readerCount: { $sum: 1 },
+      },
+    },
+    { $sort: { readerCount: -1 } },
+    { $limit: limit },
+  ]).exec();
+
+  return results.map((b) => ({
+    id: b._id.toString(),
+    title: b.title,
+    author: b.author,
+    language: b.language,
+    imageUrl: b.imageUrl,
+    readerCount: b.readerCount,
+  }));
 };
 
 const findBookById = async (
@@ -210,6 +230,7 @@ const deleteFile = async (filePath: string): Promise<void> => {
 export const bookRepository = {
   insertManyBooks,
   findPublicBooks,
+  findTopBooks,
   findPublicBookById,
   findPublicBookContentById,
   findPrivateBooks,

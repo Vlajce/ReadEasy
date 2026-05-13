@@ -11,6 +11,7 @@ import { rateLimiter } from "../middlewares/rate-limit.middleware.js";
 
 const {
   getPublicBooks,
+  getTopBooks,
   getPublicBookById,
   getPublicBookContent,
   uploadMyBook,
@@ -34,6 +35,7 @@ router.use(isAuthenticated);
 
 // Specific routes FIRST
 router.get("/", getPublicBooks);
+router.get("/top", getTopBooks);
 router.get("/languages", getBooksLanguages);
 router.get("/my", getMyBooks);
 router.get("/my/:id/content", validateObjectId("id"), getMyBookContent);

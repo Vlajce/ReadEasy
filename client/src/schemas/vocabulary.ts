@@ -18,7 +18,11 @@ export const addVocabularyFormSchema = z.object({
 });
 
 export const vocabularySearchSchema = z.object({
-  page: z.coerce.number().int().default(1).refine((v) => v > 0),
+  page: z.coerce
+    .number()
+    .int()
+    .default(1)
+    .refine((v) => v > 0),
   limit: z.coerce
     .number()
     .int()
@@ -35,5 +39,18 @@ export const vocabularySearchSchema = z.object({
     .optional(),
 });
 
+export const submitQuizSchema = z.object({
+  bookId: z.string(),
+  word: z.string(),
+  baseForm: z.string(),
+  translation: z.string(),
+  language: z.string(),
+  partOfSpeech: z.string(),
+  exampleSentence: z.string(),
+  correct: z.boolean(),
+  entryId: z.string().optional(),
+});
+
+export type SubmitQuizInput = z.infer<typeof submitQuizSchema>;
 export type AddVocabularyFormInput = z.infer<typeof addVocabularyFormSchema>;
 export type VocabularySearchParams = z.infer<typeof vocabularySearchSchema>;

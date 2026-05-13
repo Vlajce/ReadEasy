@@ -153,6 +153,26 @@ export const saveVocabularySchema = z.object({
     .optional(),
 });
 
+export const quizSubmitSchema = z.object({
+  bookId: z.string().regex(objectIdRegex),
+  word: z.string().trim().min(1).max(100),
+  baseForm: z.string().trim().min(1).max(100),
+  translation: z.string().trim().min(1).max(500),
+  language: z.string().trim().min(2).max(2),
+  partOfSpeech: z.string().trim().min(1).max(50).default("unknown"),
+  exampleSentence: z.string().trim().max(300).default(""),
+  correct: z.boolean(),
+  entryId: z.string().regex(objectIdRegex).optional(),
+});
+
+export const quizSubmitResponseSchema = z.object({
+  correct: z.boolean(),
+  shouldPromptSave: z.boolean(),
+});
+
+export type QuizSubmitInput = z.infer<typeof quizSubmitSchema>;
+export type QuizSubmitResponse = z.infer<typeof quizSubmitResponseSchema>;
+
 export type CreateVocabularyInput = z.infer<typeof createVocabularySchema>;
 export type UpdateVocabularyInput = z.infer<typeof updateVocabularySchema>;
 export type FindVocabularyQueryInput = z.infer<

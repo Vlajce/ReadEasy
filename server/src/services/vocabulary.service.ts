@@ -11,6 +11,7 @@ import type {
   UpdateVocabularyInput,
   FindVocabularyQueryInput,
   SaveVocabularyInput,
+  QuizSubmitInput,
 } from "../validation/vocabulary.schema.js";
 import type {
   OverviewStats,
@@ -19,6 +20,8 @@ import type {
   LanguageStats,
   LanguageStatsItem,
   StatsResponse,
+  BookQuizDTO,
+  QuizSubmitResponseDTO,
 } from "../types/vocabulary.js";
 import { normalizeSentence, normalizeWord } from "../utils/normalization.js";
 
@@ -305,6 +308,7 @@ const submitReview = async (
   userId: string,
   entryId: string,
   correct: boolean,
+  fromQuiz: boolean = false,
 ): Promise<IVocabularyEntry> => {
   const updated = await vocabularyRepository.updateReviewResult(
     entryId,
@@ -319,7 +323,7 @@ const submitReview = async (
 
   let newStatus: "new" | "learning" | "mastered" | null = null;
 
-  // Progression
+  // Progression — uvek
   if (status === "new" && correctCount >= 3) {
     newStatus = "learning";
   } else if (
@@ -330,11 +334,13 @@ const submitReview = async (
     newStatus = "mastered";
   }
 
-  // Regression
-  if (status === "mastered" && consecutiveIncorrect >= 3) {
-    newStatus = "learning";
-  } else if (status === "learning" && consecutiveIncorrect >= 3) {
-    newStatus = "new";
+  // Regression — samo iz exercise page, nikad iz quiz-a
+  if (!fromQuiz) {
+    if (status === "mastered" && consecutiveIncorrect >= 3) {
+      newStatus = "learning";
+    } else if (status === "learning" && consecutiveIncorrect >= 3) {
+      newStatus = "new";
+    }
   }
 
   if (!newStatus) return updated;
@@ -350,6 +356,76 @@ const submitReview = async (
   return withStatus;
 };
 
+const getBookQuiz = async (
+  userId: string,
+  bookId: string,
+): Promise<BookQuizDTO | null> => {
+  const words = await vocabularyRepository.getBookQuizWords(bookId, userId, 10);
+
+  if (words.length < 2) return null;
+
+  // Choose a random word for the quiz (the correct answer)
+  const randomIndex = Math.floor(Math.random() * Math.min(words.length, 5));
+  const quizWord = words[randomIndex]!;
+
+  // Distractory — other words from the list (except the correct answer)
+  const distractors = words
+    .filter((_, i) => i !== randomIndex)
+    .map((w) => w.translation)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 3);
+
+  // If we don't have enough distractors, skip the quiz
+  if (distractors.length < 3) return null;
+
+  // Shuffle the correct answer with distractors
+  const options = [...distractors, quizWord.translation].sort(
+    () => Math.random() - 0.5,
+  );
+
+  return {
+    bookId,
+    word: quizWord.word,
+    baseForm: quizWord.baseForm,
+    language: quizWord.language,
+    partOfSpeech: quizWord.partOfSpeech,
+    exampleSentence: quizWord.exampleSentence,
+    correctAnswer: quizWord.translation,
+    options,
+    alreadyInVocabulary: quizWord.alreadyInVocabulary,
+    ...(quizWord.entryId && { entryId: quizWord.entryId }),
+  };
+};
+
+const submitQuizAnswer = async (
+  userId: string,
+  data: QuizSubmitInput,
+): Promise<QuizSubmitResponseDTO> => {
+  if (data.entryId) {
+    const entry = await vocabularyRepository.findEntryById(
+      data.entryId,
+      userId,
+    );
+    if (!entry) throw new NotFoundError("Vocabulary entry not found");
+
+    if (entry.bookId.toString() !== data.bookId) {
+      throw new BadRequestError("Word does not belong to this book");
+    }
+
+    if (data.correct) {
+      await submitReview(userId, data.entryId, true, true);
+    }
+  }
+
+  // Ponudi save ako nema reči u vokabularu (bez obzira na correct!)
+  const shouldPromptSave = !data.entryId;
+
+  return {
+    correct: data.correct,
+    shouldPromptSave,
+  };
+};
+
 export const vocabularyService = {
   getEntries,
   getEntryById,
@@ -363,4 +439,6 @@ export const vocabularyService = {
   getLanguageStats,
   getStats,
   submitReview,
+  getBookQuiz,
+  submitQuizAnswer,
 };

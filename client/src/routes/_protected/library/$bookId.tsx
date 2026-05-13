@@ -28,6 +28,8 @@ import { useTranslate } from "@/mutations/use-translate";
 import { useSaveVocabulary } from "@/mutations/use-save-vocabulary";
 import { extractSentence } from "@/lib/extract-sentence";
 import type { TranslationResult } from "@/types/vocabulary";
+import { PopupQuiz } from "@/components/PopupQuiz";
+import { useQuizTrigger } from "@/hooks/use-quiz-trigger";
 
 const HIGHLIGHT_COLORS: { value: HighlightColor; label: string }[] = [
   { value: "yellow", label: "Yellow" },
@@ -69,6 +71,14 @@ function RouteComponent() {
     });
 
   const contentRef = useRef<HTMLDivElement>(null);
+  const [isQuizOpen, setIsQuizOpen] = useState(false);
+  const [shouldRefetchQuiz, setShouldRefetchQuiz] = useState(false);
+
+  const { markQuizDone, isMaxReached } = useQuizTrigger({
+    contentRef,
+    isTextSelected: isQuizOpen,
+    onTrigger: () => setIsQuizOpen(true),
+  });
 
   const sanitizedHtml = useMemo(
     () => DOMPurify.sanitize(bookContent, { FORBID_TAGS: ["img"] }),
@@ -87,8 +97,22 @@ function RouteComponent() {
     }
   }, [sanitizedHtml, vocabWords]);
 
+  const handleQuizDone = () => {
+    setIsQuizOpen(false);
+    markQuizDone();
+    setShouldRefetchQuiz((prev) => !prev);
+  };
+
   return (
     <>
+      {!isMaxReached && isQuizOpen && (
+        <PopupQuiz
+          bookId={bookId}
+          key={`${bookId}-${shouldRefetchQuiz}`}
+          onDone={handleQuizDone}
+        />
+      )}
+
       <SelectionPopover>
         <SelectionPopoverTrigger>
           <div

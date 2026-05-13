@@ -56,6 +56,24 @@ export interface VocabularyEntryDetailDTO {
   updatedAt: string;
 }
 
+export interface BookQuizDTO {
+  bookId: string;
+  word: string;
+  baseForm: string;
+  language: string;
+  partOfSpeech: string;
+  exampleSentence: string;
+  correctAnswer: string;
+  options: string[];
+  alreadyInVocabulary: boolean;
+  entryId?: string;
+}
+
+export interface QuizSubmitResponseDTO {
+  correct: boolean;
+  shouldPromptSave: boolean;
+}
+
 export interface PaginatedVocabularyDTO {
   data: VocabularyEntryDTO[];
   meta: {

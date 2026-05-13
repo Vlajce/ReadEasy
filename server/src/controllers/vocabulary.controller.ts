@@ -5,6 +5,8 @@ import {
   findVocabularyQuerySchema,
   activityStatsQuerySchema,
   saveVocabularySchema,
+  quizSubmitSchema,
+  quizSubmitResponseSchema,
 } from "../validation/vocabulary.schema.js";
 import { asyncHandler } from "../utils/async.handler.js";
 import { sendSuccess } from "../utils/response.handler.js";
@@ -12,6 +14,7 @@ import type {
   PaginatedVocabularyDTO,
   BookVocabularyWordDTO,
   StatsResponse,
+  QuizSubmitResponseDTO,
 } from "../types/vocabulary.js";
 import {
   toVocabularyEntryDetailDTO,
@@ -149,6 +152,34 @@ const getStats = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
+const getBookQuiz = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const { bookId } = req.params;
+
+  const quiz = await vocabularyService.getBookQuiz(userId, bookId as string);
+
+  if (!quiz) {
+    return sendSuccess(res, null, "Not enough data for quiz", 200);
+  }
+
+  return sendSuccess(res, quiz, "Quiz fetched successfully", 200);
+});
+
+const submitQuizAnswer = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const parsed = quizSubmitSchema.parse(req.body);
+
+  const response = await vocabularyService.submitQuizAnswer(userId, parsed);
+  const validatedResponse = quizSubmitResponseSchema.parse(response);
+
+  return sendSuccess<QuizSubmitResponseDTO>(
+    res,
+    validatedResponse,
+    "Quiz answer submitted",
+    200,
+  );
+});
+
 export const vocabularyController = {
   getVocabularyEntries,
   getVocabularyEntryById,
@@ -158,4 +189,6 @@ export const vocabularyController = {
   deleteVocabularyEntry,
   getBookWords,
   getStats,
+  getBookQuiz,
+  submitQuizAnswer,
 };

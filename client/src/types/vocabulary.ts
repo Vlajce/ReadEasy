@@ -12,6 +12,19 @@ export interface BookVocabularyWord {
   exampleSentence?: string;
 }
 
+export interface BookQuizDTO {
+  bookId: string;
+  word: string;
+  baseForm: string;
+  language: string;
+  partOfSpeech: string;
+  exampleSentence: string;
+  correctAnswer: string;
+  options: string[];
+  alreadyInVocabulary: boolean;
+  entryId?: string;
+}
+
 // ─── Vocabulary Entry ─────────────────────────────────────────────────────────
 
 export interface VocabularyEntry {
@@ -136,4 +149,11 @@ export interface StatsResponse {
   overview: OverviewStats;
   activity: ActivityStats;
   byLanguage: LanguageStats;
+}
+
+// ─── Quiz ─────────────────────────────────────────────────────────────────
+
+export interface SubmitQuizResponse {
+  correct: boolean;
+  shouldPromptSave: boolean;
 }

@@ -21,3 +21,7 @@ export interface PaginatedBooks {
     totalPages: number;
   };
 }
+
+export interface TopBook extends Book {
+  readerCount: number;
+}

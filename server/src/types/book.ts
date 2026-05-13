@@ -7,6 +7,10 @@ export interface BookDTO {
   wordCount?: number;
 }
 
+export interface TopBookDTO extends BookDTO {
+  readerCount: number;
+}
+
 export interface BookDetailDTO extends BookDTO {
   description?: string;
   subjects: string[];

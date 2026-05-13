@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Search } from "lucide-react";
+import { CalendarArrowDown, CalendarArrowUp, Search } from "lucide-react";
 import { getAdminStatsQueryOptions } from "@/query-options/get-admin-stats-query-options";
 import { getAdminUsersQueryOptions } from "@/query-options/get-admin-users-query-options";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { AdminTopNav } from "@/components/admin/admin-top-nav";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import {
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/_admin/dashboard")({
 function DashboardPage() {
   const [activeTab, setActiveTab] = useState<AdminSectionTab>("users");
   const [searchTerm, setSearchTerm] = useState("");
+  const [dateSortOrder, setDateSortOrder] = useState<"desc" | "asc">("desc");
 
   const { data: stats, isLoading: statsLoading } = useQuery(
     getAdminStatsQueryOptions(),
@@ -48,14 +50,31 @@ function DashboardPage() {
           <AdminSectionTabs value={activeTab} onChange={setActiveTab} />
 
           {activeTab === "users" ? (
-            <div className="relative w-full sm:w-72">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search users..."
-                className="pl-9"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-              />
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+              <div className="relative w-full sm:w-72">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search users..."
+                  className="pl-9"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={() =>
+                  setDateSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))
+                }
+              >
+                {dateSortOrder === "desc" ? (
+                  <CalendarArrowDown className="size-4" />
+                ) : (
+                  <CalendarArrowUp className="size-4" />
+                )}
+                {dateSortOrder === "desc" ? "Newest first" : "Oldest first"}
+              </Button>
             </div>
           ) : null}
         </div>
@@ -65,6 +84,7 @@ function DashboardPage() {
             users={users ?? []}
             isLoading={usersLoading}
             searchTerm={searchTerm}
+            dateSortOrder={dateSortOrder}
           />
         ) : (
           <AdminInsights stats={stats} isLoading={statsLoading} />
