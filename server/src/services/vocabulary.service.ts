@@ -22,6 +22,7 @@ import type {
   StatsResponse,
   BookQuizDTO,
   QuizSubmitResponseDTO,
+  ProgressionStats,
 } from "../types/vocabulary.js";
 import { normalizeSentence, normalizeWord } from "../utils/normalization.js";
 
@@ -285,20 +286,29 @@ const getLanguageStats = async (userId: string): Promise<LanguageStats> => {
   return { languages };
 };
 
+const getProgressionStats = async (
+  userId: string,
+  days: number,
+): Promise<ProgressionStats> => {
+  return vocabularyRepository.getProgressionStatsData(userId, days);
+};
+
 const getStats = async (
   userId: string,
   days: number = 30,
 ): Promise<StatsResponse> => {
-  const [overview, activity, byLanguage] = await Promise.all([
+  const [overview, activity, byLanguage, progression] = await Promise.all([
     getOverviewStats(userId),
     getActivityStats(userId, days),
     getLanguageStats(userId),
+    getProgressionStats(userId, days),
   ]);
 
   return {
     overview,
     activity,
     byLanguage,
+    progression,
   };
 };
 

@@ -1,3 +1,4 @@
+import { Globe2 } from "lucide-react";
 import { getName } from "language-flag-colors";
 import type { LanguageStatsItem } from "@/types/vocabulary";
 
@@ -5,11 +6,14 @@ interface LanguageBreakdownSectionProps {
   languages: LanguageStatsItem[];
 }
 
-const COLORS = {
-  new: "#378ADD",
-  learning: "#EF9F27",
-  mastered: "#1D9E75",
-};
+const LANGUAGE_COLORS = [
+  "#378ADD",
+  "#EF9F27",
+  "#1D9E75",
+  "#9B6DFF",
+  "#E05C8A",
+  "#3DBDD4",
+];
 
 export function LanguageBreakdownSection({
   languages,
@@ -17,6 +21,8 @@ export function LanguageBreakdownSection({
   if (!languages || languages.length === 0) {
     return null;
   }
+
+  const maxTotal = Math.max(...languages.map((l) => l.total));
 
   return (
     <div
@@ -27,23 +33,35 @@ export function LanguageBreakdownSection({
         padding: "20px",
       }}
     >
+      {/* Header */}
       <div
         style={{
-          fontSize: "15px",
-          fontWeight: 500,
-          color: "var(--color-text-primary)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "10px",
           marginBottom: "16px",
         }}
       >
-        Progress by language
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-50">
+          <Globe2 className="w-5 h-5 text-zinc-900" />
+        </div>{" "}
+        <div
+          style={{
+            fontSize: "15px",
+            fontWeight: 600,
+            color: "var(--color-text-primary)",
+          }}
+        >
+          Languages
+        </div>
       </div>
 
+      {/* Language rows */}
       <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-        {languages.map((lang) => {
-          const total = lang.total;
-          const newPct = (lang.byStatus.new / total) * 100;
-          const learningPct = (lang.byStatus.learning / total) * 100;
-          const masteredPct = (lang.byStatus.mastered / total) * 100;
+        {languages.map((lang, index) => {
+          const color = LANGUAGE_COLORS[index % LANGUAGE_COLORS.length];
+          const barWidth = (lang.total / maxTotal) * 100;
 
           return (
             <div key={lang.language}>
@@ -58,15 +76,9 @@ export function LanguageBreakdownSection({
                   style={{
                     fontSize: "14px",
                     color: "var(--color-text-primary)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
                   }}
                 >
-                  <span style={{ fontSize: "12px", color: "var(--color-text-secondary)" }}>
-                    {lang.language.toUpperCase()}
-                  </span>
-                  <span>{getName(lang.language) || lang.language}</span>
+                  {getName(lang.language) || lang.language}
                 </span>
                 <span
                   style={{
@@ -74,7 +86,7 @@ export function LanguageBreakdownSection({
                     color: "var(--color-text-secondary)",
                   }}
                 >
-                  {total} words
+                  {lang.total} words
                 </span>
               </div>
 
@@ -89,116 +101,15 @@ export function LanguageBreakdownSection({
                 <div
                   style={{
                     height: "100%",
-                    display: "flex",
+                    width: `${barWidth}%`,
+                    backgroundColor: color,
+                    borderRadius: "3px",
                   }}
-                >
-                  {newPct > 0 && (
-                    <div
-                      style={{
-                        width: `${newPct}%`,
-                        backgroundColor: COLORS.new,
-                        borderRadius:
-                          newPct === 100
-                            ? "3px"
-                            : newPct > 0
-                              ? "3px 0 0 3px"
-                              : "0",
-                      }}
-                    />
-                  )}
-                  {learningPct > 0 && (
-                    <div
-                      style={{
-                        width: `${learningPct}%`,
-                        backgroundColor: COLORS.learning,
-                      }}
-                    />
-                  )}
-                  {masteredPct > 0 && (
-                    <div
-                      style={{
-                        width: `${masteredPct}%`,
-                        backgroundColor: COLORS.mastered,
-                        borderRadius: masteredPct > 0 ? "0 3px 3px 0" : "0",
-                      }}
-                    />
-                  )}
-                </div>
+                />
               </div>
             </div>
           );
         })}
-
-        <div
-          style={{
-            display: "flex",
-            gap: "16px",
-            paddingTop: "4px",
-            borderTop: "0.5px solid var(--color-border-tertiary)",
-            marginTop: "4px",
-          }}
-        >
-          <span
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "5px",
-              fontSize: "13px",
-              color: "var(--color-text-secondary)",
-            }}
-          >
-            <span
-              style={{
-                width: "8px",
-                height: "8px",
-                borderRadius: "2px",
-                backgroundColor: COLORS.new,
-                display: "inline-block",
-              }}
-            />
-            New
-          </span>
-          <span
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "5px",
-              fontSize: "13px",
-              color: "var(--color-text-secondary)",
-            }}
-          >
-            <span
-              style={{
-                width: "8px",
-                height: "8px",
-                borderRadius: "2px",
-                backgroundColor: COLORS.learning,
-                display: "inline-block",
-              }}
-            />
-            Learning
-          </span>
-          <span
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "5px",
-              fontSize: "13px",
-              color: "var(--color-text-secondary)",
-            }}
-          >
-            <span
-              style={{
-                width: "8px",
-                height: "8px",
-                borderRadius: "2px",
-                backgroundColor: COLORS.mastered,
-                display: "inline-block",
-              }}
-            />
-            Mastered
-          </span>
-        </div>
       </div>
     </div>
   );

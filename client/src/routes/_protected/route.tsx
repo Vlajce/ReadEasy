@@ -18,7 +18,11 @@ import { getCurrentUserQueryOptions } from "@/query-options/get-current-user-que
 export const Route = createFileRoute("/_protected")({
   beforeLoad: ({ context: { auth } }) => {
     if (!auth.isAuthenticated) {
-      throw redirect({ to: "/login", replace: true });
+      throw redirect({
+        to: "/login",
+        replace: true,
+        search: { banned: false },
+      });
     }
     if (auth.user?.role === "admin") {
       throw redirect({ to: "/dashboard", replace: true });
@@ -34,13 +38,23 @@ function SidebarLayout() {
   // Get current user from query (reactive to updates)
   const { data: user } = useQuery(getCurrentUserQueryOptions());
   const hasNativeLanguage = !!user?.nativeLanguage;
+  const matches = useMatches();
+  const isStatsPage = matches.some(
+    (match) => match.staticData.title === "Progress",
+  );
 
   return (
     <SidebarProvider>
       <Sidebar />
       <SidebarInset>
         <Header />
-        <div className="flex flex-col flex-1 my-10 mx-4 sm:mx-10">
+        <div
+          className={
+            isStatsPage
+              ? "flex flex-col flex-1 bg-[#fafafa]"
+              : "flex flex-col flex-1 my-10 mx-4 sm:mx-10"
+          }
+        >
           <Outlet />
         </div>
       </SidebarInset>

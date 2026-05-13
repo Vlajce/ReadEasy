@@ -28,7 +28,7 @@ import { useTranslate } from "@/mutations/use-translate";
 import { useSaveVocabulary } from "@/mutations/use-save-vocabulary";
 import { extractSentence } from "@/lib/extract-sentence";
 import type { TranslationResult } from "@/types/vocabulary";
-import { PopupQuiz } from "@/components/PopupQuiz";
+import { PopupQuiz } from "@/components/popup-quiz";
 import { useQuizTrigger } from "@/hooks/use-quiz-trigger";
 
 const HIGHLIGHT_COLORS: { value: HighlightColor; label: string }[] = [

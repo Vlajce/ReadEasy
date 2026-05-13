@@ -296,6 +296,55 @@ const getLanguageStatsData = async (
   ]).exec();
 };
 
+const getProgressionStatsData = async (
+  userId: string,
+  days: number,
+): Promise<{
+  newToLearning: number;
+  learningToMastered: number;
+  accuracyRate: number;
+}> => {
+  const userObjectId = new Types.ObjectId(userId);
+  const daysAgo = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  const [progressionResult, accuracyResult] = await Promise.all([
+    VocabularyEntry.aggregate([
+      { $match: { userId: userObjectId } },
+      { $unwind: "$statusHistory" },
+      { $match: { "statusHistory.changedAt": { $gte: daysAgo } } },
+      {
+        $group: {
+          _id: "$statusHistory.status",
+          count: { $sum: 1 },
+        },
+      },
+    ]).exec(),
+
+    VocabularyEntry.aggregate([
+      { $match: { userId: userObjectId } },
+      {
+        $group: {
+          _id: null,
+          totalCorrect: { $sum: "$correctCount" },
+          totalIncorrect: { $sum: "$incorrectCount" },
+        },
+      },
+    ]).exec(),
+  ]);
+
+  const newToLearning =
+    progressionResult.find((r) => r._id === "learning")?.count ?? 0;
+  const learningToMastered =
+    progressionResult.find((r) => r._id === "mastered")?.count ?? 0;
+
+  const acc = accuracyResult[0];
+  const total = (acc?.totalCorrect ?? 0) + (acc?.totalIncorrect ?? 0);
+  const accuracyRate =
+    total > 0 ? Math.round((acc.totalCorrect / total) * 100) : 0;
+
+  return { newToLearning, learningToMastered, accuracyRate };
+};
+
 const getWordsForExercises = async (
   userId: string,
   language: string,
@@ -508,6 +557,7 @@ export const vocabularyRepository = {
   getOverviewStatsData,
   getActivityStatsData,
   getLanguageStatsData,
+  getProgressionStatsData,
   getWordsForExercises,
   updateReviewResult,
   appendStatusHistory,

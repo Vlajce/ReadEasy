@@ -1,4 +1,5 @@
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { BookMarked } from "lucide-react";
 import type { VocabularyStatus } from "@/types/vocabulary";
 
 interface StatusBreakdownChartProps {
@@ -18,6 +19,8 @@ const LABELS = {
 };
 
 export function StatusBreakdownChart({ byStatus }: StatusBreakdownChartProps) {
+  const total = byStatus.new + byStatus.learning + byStatus.mastered;
+
   const data = [
     { name: "New", value: byStatus.new },
     { name: "Learning", value: byStatus.learning },
@@ -33,21 +36,35 @@ export function StatusBreakdownChart({ byStatus }: StatusBreakdownChartProps) {
         padding: "20px",
       }}
     >
+      {/* Header */}
       <div
         style={{
-          fontSize: "15px",
-          fontWeight: 500,
-          color: "var(--color-text-primary)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "10px",
           marginBottom: "16px",
         }}
       >
-        Status breakdown
+        <div className="bg-zinc-50 rounded-xl">
+          <BookMarked className="w-5 h-5 text-zinc-900" />
+        </div>
+        <div
+          style={{
+            fontSize: "15px",
+            fontWeight: 600,
+            color: "var(--color-text-primary)",
+          }}
+        >
+          Status
+        </div>
       </div>
 
+      {/* Donut chart with total in center */}
       <div
         style={{
           position: "relative",
-          height: "130px",
+          height: "160px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -59,10 +76,11 @@ export function StatusBreakdownChart({ byStatus }: StatusBreakdownChartProps) {
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius={45}
-              outerRadius={65}
-              paddingAngle={0}
+              innerRadius={55}
+              outerRadius={75}
+              paddingAngle={2}
               dataKey="value"
+              strokeWidth={0}
             >
               <Cell fill={COLORS.new} />
               <Cell fill={COLORS.learning} />
@@ -70,8 +88,42 @@ export function StatusBreakdownChart({ byStatus }: StatusBreakdownChartProps) {
             </Pie>
           </PieChart>
         </ResponsiveContainer>
+
+        {/* Total in center */}
+        <div
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            textAlign: "center",
+            pointerEvents: "none",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "24px",
+              fontWeight: 600,
+              color: "var(--color-text-primary)",
+              lineHeight: 1,
+            }}
+          >
+            {total}
+          </div>
+          <div
+            style={{
+              fontSize: "10px",
+              color: "var(--color-text-secondary)",
+              letterSpacing: "0.08em",
+              marginTop: "4px",
+            }}
+          >
+            TOTAL
+          </div>
+        </div>
       </div>
 
+      {/* Legend */}
       <div
         style={{
           display: "flex",
@@ -98,9 +150,15 @@ export function StatusBreakdownChart({ byStatus }: StatusBreakdownChartProps) {
                 borderRadius: "50%",
                 backgroundColor: COLORS[status],
                 display: "inline-block",
+                flexShrink: 0,
               }}
             />
-            {LABELS[status]} {byStatus[status]}
+            {LABELS[status]}{" "}
+            <span
+              style={{ color: "var(--color-text-primary)", fontWeight: 500 }}
+            >
+              {byStatus[status]}
+            </span>
           </span>
         ))}
       </div>

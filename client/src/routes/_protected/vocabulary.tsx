@@ -191,7 +191,7 @@ function RouteComponent() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
           <Input
             className="max-w-xl bg-accent/60 inset-shadow-md/10 pl-9 pr-8"
-            placeholder="Search by word..."
+            placeholder="Search word..."
             value={inputValue}
             onChange={handleInputChange}
           />

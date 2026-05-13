@@ -102,7 +102,11 @@ function LoginLink() {
   return (
     <div className="text-center text-sm mt-4">
       Already have an account?{" "}
-      <Link to="/login" className="underline underline-offset-4">
+      <Link
+        to="/login"
+        search={{ banned: false }}
+        className="underline underline-offset-4"
+      >
         Log in
       </Link>
     </div>

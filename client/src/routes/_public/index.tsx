@@ -2,7 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_public/")({
   beforeLoad: () => {
-    throw redirect({ to: "/login", replace: true });
+    throw redirect({ to: "/login", replace: true, search: { banned: false } });
   },
   component: () => null,
 });
