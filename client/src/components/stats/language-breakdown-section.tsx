@@ -58,15 +58,9 @@ export function LanguageBreakdownSection({
                   style={{
                     fontSize: "14px",
                     color: "var(--color-text-primary)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
                   }}
                 >
-                  <span style={{ fontSize: "12px", color: "var(--color-text-secondary)" }}>
-                    {lang.language.toUpperCase()}
-                  </span>
-                  <span>{getName(lang.language) || lang.language}</span>
+                  {getName(lang.language) || lang.language}
                 </span>
                 <span
                   style={{

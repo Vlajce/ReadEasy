@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getBookQuizQueryOptions } from "@/query-options/get-book-quiz-query-options";
-import { QuizCard } from "@/components/quiz/QuizCard";
-import { QuizTriggerButton } from "@/components/quiz/QuizTriggerButton";
+import { QuizCard } from "@/components/quiz/quiz-card";
+import { QuizTriggerButton } from "@/components/quiz/quiz-trigger-button";
 
 interface PopupQuizProps {
   bookId: string;

@@ -145,10 +145,17 @@ export interface LanguageStats {
   languages: LanguageStatsItem[];
 }
 
+export interface ProgressionStats {
+  newToLearning: number;
+  learningToMastered: number;
+  accuracyRate: number;
+}
+
 export interface StatsResponse {
   overview: OverviewStats;
   activity: ActivityStats;
   byLanguage: LanguageStats;
+  progression: ProgressionStats;
 }
 
 // ─── Quiz ─────────────────────────────────────────────────────────────────
