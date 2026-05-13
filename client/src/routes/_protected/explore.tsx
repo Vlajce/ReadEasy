@@ -18,9 +18,9 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { getEmoji, getLanguage, getName } from "language-flag-colors";
 import { Globe, Search, X } from "lucide-react";
-import { Suspense, useCallback, useState } from "react";
+import { Suspense, useCallback, useState, useEffect, useRef } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
-// import { TopBooksSection } from "@/components/ui/top-books-section";
+import { TopBooksSection } from "@/components/ui/top-books-section";
 
 export const Route = createFileRoute("/_protected/explore")({
   component: RouteComponent,
@@ -35,15 +35,35 @@ export const Route = createFileRoute("/_protected/explore")({
 
 function RouteComponent() {
   const navigate = useNavigate({ from: Route.fullPath });
-  const { search, limit, ...rest } = Route.useSearch();
+  const { search, limit, page, ...rest } = Route.useSearch();
 
   const [inputValue, setInputValue] = useState(search || "");
+
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    document
+      .getElementById("all-books")
+      ?.scrollIntoView({ behavior: "smooth" });
+  }, [page]);
+
+  function scrollToAllBooks() {
+    document
+      .getElementById("all-books")
+      ?.scrollIntoView({ behavior: "smooth" });
+  }
 
   const triggerSearch = useCallback(
     (value: string) => {
       navigate({
         search: (prev) => ({ ...prev, search: value || undefined, page: 1 }),
+        resetScroll: false, // ← dodaj
       });
+      scrollToAllBooks();
     },
     [navigate],
   );
@@ -67,41 +87,58 @@ function RouteComponent() {
         language: language === "all" ? undefined : language,
         page: 1,
       }),
+      resetScroll: false,
     });
+    scrollToAllBooks();
   }
 
   return (
     <div className="container mx-auto">
-      <div className="mb-10 flex flex-wrap gap-4 justify-between items-center">
-        <div className="flex flex-1 gap-2 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-          <Input
-            className="min-w-45 max-w-xs bg-accent/60 inset-shadow-md/10 shadow-none pl-9 pr-8"
-            placeholder="Search"
-            defaultValue={search || ""}
-            onChange={handleInputChange}
-          />
-          {inputValue && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="size-4" />
-            </button>
-          )}
+      {/* Most Read Section */}
+      <TopBooksSection />
+
+      <div className="my-8 border-t border-border/70" />
+
+      {/* All Books Section */}
+      <div id="all-books" className="mb-6">
+        <div className="flex items-center gap-2 mb-1">
+          <h2 className="text-2xl font-semibold">All Books</h2>
+          <span className="text-xl">📚</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Globe className="size-7" />
-          <SelectLanguage
-            handleApplyLanguageFilter={handleApplyLanguageFilter}
-          />
+        <p className="text-lg text-muted-foreground mb-6">
+          Browse the complete library
+        </p>
+
+        <div className="mb-10 flex flex-wrap gap-4 justify-between items-center">
+          <div className="flex flex-1 gap-2 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            <Input
+              className="min-w-45 max-w-xs bg-accent/60 inset-shadow-md/10 shadow-none pl-9 pr-8"
+              placeholder="Search title or author..."
+              defaultValue={search || ""}
+              onChange={handleInputChange}
+            />
+            {inputValue && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Globe className="size-7" />
+            <SelectLanguage
+              handleApplyLanguageFilter={handleApplyLanguageFilter}
+            />
+          </div>
         </div>
       </div>
-      {/* <TopBooksSection /> */}
-      {/* <div className="my-10 border-t border-border/70" /> */}
+
       <Suspense fallback={<BookListSkeleton length={limit} />}>
-        <BooksContainer search={search} limit={limit} {...rest} />
+        <BooksContainer search={search} limit={limit} page={page} {...rest} />
       </Suspense>
     </div>
   );

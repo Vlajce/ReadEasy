@@ -18,7 +18,11 @@ import { getCurrentUserQueryOptions } from "@/query-options/get-current-user-que
 export const Route = createFileRoute("/_protected")({
   beforeLoad: ({ context: { auth } }) => {
     if (!auth.isAuthenticated) {
-      throw redirect({ to: "/login", replace: true });
+      throw redirect({
+        to: "/login",
+        replace: true,
+        search: { banned: false },
+      });
     }
     if (auth.user?.role === "admin") {
       throw redirect({ to: "/dashboard", replace: true });
