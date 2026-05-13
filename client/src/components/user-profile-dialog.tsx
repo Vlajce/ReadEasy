@@ -4,13 +4,13 @@ import { BookOpen, Calendar, Globe, X, Zap, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import type { AdminUser } from "@/types/admin";
-import { getAdminUserStatsQueryOptions } from "@/query-options/get-admin-user-stats-query-options";
+import type { User } from "@/types/user";
+import { getVocabularyStatsQueryOptions } from "@/query-options/get-vocabulary-stats-query-options";
 import { getLanguageName } from "@/lib/languages";
 
-interface AdminUserProfileDialogProps {
+interface UserProfileDialogProps {
   open: boolean;
-  user: AdminUser | null;
+  user: User | null;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -20,11 +20,11 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
   day: "numeric",
 });
 
-export function AdminUserProfileDialog({
+export function UserProfileDialog({
   open,
   user,
   onOpenChange,
-}: AdminUserProfileDialogProps) {
+}: UserProfileDialogProps) {
   if (!user) return null;
 
   return (
@@ -105,7 +105,7 @@ export function AdminUserProfileDialog({
             <div className="max-h-[60vh] overflow-y-auto px-8 py-6">
               <div className="grid grid-cols-2 gap-3">
                 {/* Vocabulary stats */}
-                <VocabularyCard userId={user.id} />
+                <UserVocabularyCard />
 
                 {/* Native language */}
                 <div className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-zinc-100 bg-zinc-50/50 p-6 shadow-sm transition-shadow hover:shadow-md">
@@ -152,12 +152,12 @@ export function AdminUserProfileDialog({
                       Reading Journal
                     </h3>
                     <span className="text-[10px] font-bold text-zinc-400">
-                      {user.readingBooks.length} Books
+                      {user.readingBooks?.length ?? 0} Books
                     </span>
                   </div>
 
                   <div className="space-y-2">
-                    {user.readingBooks.length > 0 ? (
+                    {user.readingBooks && user.readingBooks.length > 0 ? (
                       user.readingBooks.map((book) => (
                         <div
                           key={book.id}
@@ -194,15 +194,13 @@ export function AdminUserProfileDialog({
   );
 }
 
-function VocabularyCard({ userId }: { userId: string }) {
-  const { data: stats, isLoading } = useQuery(
-    getAdminUserStatsQueryOptions(userId),
-  );
+function UserVocabularyCard() {
+  const { data: stats, isLoading } = useQuery(getVocabularyStatsQueryOptions());
 
-  const total = stats?.totalWords ?? 0;
-  const mastered = stats?.byStatus.mastered ?? 0;
-  const learning = stats?.byStatus.learning ?? 0;
-  const newWords = stats?.byStatus.new ?? 0;
+  const newWords = stats?.overview?.byStatus?.new ?? 0;
+  const learning = stats?.overview?.byStatus?.learning ?? 0;
+  const mastered = stats?.overview?.byStatus?.mastered ?? 0;
+  const total = newWords + learning + mastered;
 
   return (
     <div className="flex flex-col justify-between rounded-2xl border border-zinc-100 bg-zinc-50/50 p-6 shadow-sm transition-shadow hover:shadow-md">

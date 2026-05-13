@@ -18,13 +18,13 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { useState } from "react";
 import { NativeLanguageDialog } from "./native-language-dialog";
+import { UserProfileDialog } from "./user-profile-dialog";
 
 export function Sidebar() {
   return (
@@ -99,6 +99,7 @@ function SidebarUserMenu() {
   const { user } = useRouteContext({ from: "/_protected" });
   const { mutate: logout, isPending } = useLogout();
   const [showLanguageDialog, setShowLanguageDialog] = useState(false);
+  const [showProfileDialog, setShowProfileDialog] = useState(false);
 
   return (
     <SidebarFooter>
@@ -121,11 +122,14 @@ function SidebarUserMenu() {
               sideOffset={4}
               onCloseAutoFocus={(event) => event.preventDefault()}
             >
-              <DropdownMenuLabel className="p-0 font-normal">
-                <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => setShowProfileDialog(true)}
+              >
+                <div className="flex items-center gap-2 text-left text-sm">
                   <UserInfo />
                 </div>
-              </DropdownMenuLabel>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setShowLanguageDialog(true)}>
                 <Globe />
@@ -152,6 +156,13 @@ function SidebarUserMenu() {
         onOpenChange={setShowLanguageDialog}
         isDismissible={true}
       />
+
+      {/* User Profile Dialog */}
+      <UserProfileDialog
+        open={showProfileDialog}
+        user={user}
+        onOpenChange={setShowProfileDialog}
+      />
     </SidebarFooter>
   );
 }
@@ -160,7 +171,7 @@ function UserInfo() {
   const { user } = useRouteContext({ from: "/_protected" });
 
   return (
-    <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+    <div className="flex items-center gap-2 p-1 text-left text-sm">
       <Avatar className="h-8 w-8 rounded-lg">
         <AvatarImage src={undefined} alt={user?.username ?? "User"} />
         <AvatarFallback className="rounded-lg">
