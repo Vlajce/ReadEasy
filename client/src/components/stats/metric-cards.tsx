@@ -14,14 +14,15 @@ interface MetricCardProps {
   description: string;
   icon: ReactNode;
   badgeLabel: string;
-  accent?: "emerald" | "blue" | "amber" | "slate";
+  accent?: "emerald" | "blue" | "amber" | "indigo" | "slate";
 }
 
 const accentClasses: Record<NonNullable<MetricCardProps["accent"]>, string> = {
-  emerald: "bg-emerald-50 text-emerald-700",
-  blue: "bg-blue-50 text-blue-700",
-  amber: "bg-amber-50 text-amber-700",
-  slate: "bg-slate-100 text-slate-700",
+  blue: "bg-blue-50 text-blue-600",
+  amber: "bg-orange-50 text-orange-600",
+  indigo: "bg-indigo-50 text-indigo-600",
+  emerald: "bg-emerald-50 text-emerald-600",
+  slate: "bg-slate-100 text-slate-600",
 };
 
 function MetricCard({
@@ -35,7 +36,9 @@ function MetricCard({
   return (
     <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-center justify-between">
-        <div className="rounded-2xl bg-slate-50 p-3 text-slate-700">{icon}</div>
+        <div className={cn("rounded-2xl p-3", accentClasses[accent])}>
+          {icon}
+        </div>
         <Badge
           variant="outline"
           className={cn(
@@ -73,7 +76,7 @@ export function MetricCards({ overview }: MetricCardsProps) {
       description: "Across all books",
       icon: <BookOpen className="size-5" />,
       badgeLabel: "Library",
-      accent: "slate",
+      accent: "blue",
     },
     {
       title: "This Week",
@@ -89,7 +92,7 @@ export function MetricCards({ overview }: MetricCardsProps) {
       description: "Practiced at least once",
       icon: <GraduationCap className="size-5" />,
       badgeLabel: "Progress",
-      accent: "blue",
+      accent: "indigo",
     },
     {
       title: "Mastered",

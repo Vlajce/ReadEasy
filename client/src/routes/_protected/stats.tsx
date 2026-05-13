@@ -31,16 +31,9 @@ function StatsPageComponent() {
     (data.overview.byStatus.learning ?? 0) +
     (data.overview.byStatus.mastered ?? 0);
 
-  // Show empty state if no words
   if (totalWords === 0) {
     return <StatsEmpty />;
   }
 
-  return (
-    <StatsPage
-      data={data}
-      days={days}
-      setDays={setDays}
-    />
-  );
+  return <StatsPage data={data} days={days} setDays={setDays} />;
 }
